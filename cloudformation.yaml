@@ -7,6 +7,7 @@ Parameters:
     AllowedValues:
       - PROD
       - CODE
+      - DEV
     Default: CODE
   WaitTimeForZuora:
     Description: How long the step function should wait (in seconds) for Zuora to generate its Export
@@ -54,6 +55,8 @@ Resources:
           Resource: "*"
         - Sid: Allow access for Key Administrators
           Effect: Allow
+          Principal:
+            AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
           Action:
           - kms:Create*
           - kms:Describe*
