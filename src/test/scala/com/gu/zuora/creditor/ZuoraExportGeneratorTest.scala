@@ -1,7 +1,7 @@
 package com.gu.zuora.creditor
 
 import com.gu.zuora.creditor.Models.ExportCommand
-import com.gu.zuora.creditor.Types.SerialisedJson
+import com.gu.zuora.creditor.Types.{RawCSVText, SerialisedJson}
 import org.scalatest.FlatSpec
 
 class ZuoraExportGeneratorTest extends FlatSpec {
@@ -14,7 +14,7 @@ class ZuoraExportGeneratorTest extends FlatSpec {
     override def getJSON: SerialisedJson = """{"invalid":"command"}"""
   }
 
-  private val zuoraRestClient = new TestRestClient {
+  private val zuoraRestClient = new ZuoraRestClient {
     override def makeRestPOST(path: String)(commandJSON: SerialisedJson): SerialisedJson = {
       assert(path == "object/export")
       if (commandJSON == validCommand.getJSON) {
@@ -23,6 +23,8 @@ class ZuoraExportGeneratorTest extends FlatSpec {
         ""
       }
     }
+    override def makeRestGET(path: String): SerialisedJson = ???
+    override def downloadFile(path: String): RawCSVText = ???
   }
 
   private val zuoraGenerateExport = ZuoraExportGenerator.apply(zuoraRestClient) _

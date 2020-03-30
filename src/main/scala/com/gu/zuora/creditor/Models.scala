@@ -2,7 +2,6 @@ package com.gu.zuora.creditor
 
 import com.gu.zuora.creditor.Models.NegativeInvoiceFileLine
 import com.gu.zuora.creditor.Types.{RawCSVText, SerialisedJson, ZOQLQueryFragment}
-import com.gu.zuora.soap.CreditBalanceAdjustment
 import purecsv.unsafe
 import purecsv.unsafe.CSVReader
 
@@ -18,9 +17,6 @@ object Models {
   }
   case class NegativeInvoiceToTransfer(invoiceNumber: String, invoiceBalance: BigDecimal, subscriberId: String) {
     val transferrableBalance: BigDecimal = if (invoiceBalance < 0) invoiceBalance * -1 else BigDecimal(0)
-  }
-  trait CreateCreditBalanceAdjustmentCommand {
-    def createCreditBalanceAdjustment(invoice: NegativeInvoiceToTransfer): CreditBalanceAdjustment
   }
 
   trait ExportCommand {

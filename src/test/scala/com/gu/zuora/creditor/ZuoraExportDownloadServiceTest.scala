@@ -13,7 +13,7 @@ class ZuoraExportDownloadServiceTest extends FlatSpec {
     """lyric,lyric,lyric,lyric
       |abc,123,abc,123""".stripMargin
 
-  private val zuoraRestClient = new TestRestClient {
+  private val zuoraRestClient = new ZuoraRestClient {
 
     override def downloadFile(path: String): RawCSVText = {
       if (path == s"file/$fileId") {
@@ -32,6 +32,8 @@ class ZuoraExportDownloadServiceTest extends FlatSpec {
         """{"invalid":"invalid"}"""
       }
     }
+
+    override def makeRestPOST(path: String)(commandJSON: SerialisedJson): SerialisedJson = ???
   }
 
   behavior of "ZuoraExportDownloaderTest"

@@ -8,8 +8,7 @@ import scala.collection.JavaConverters._
 
 class Lambda extends RequestHandler[KeyValue, KeyValue] with Logging {
 
-  private val zuoraClients = ZuoraAPIClientsFromEnvironment
-  private val zuoraRestClient = zuoraClients.zuoraRestClient
+  private val zuoraRestClient = ZuoraAPIClientsFromEnvironment.zuoraRestClient
   private val zuoraGenerateExport = ZuoraExportGenerator.apply(zuoraRestClient) _
 
   val exportCommands = Map(

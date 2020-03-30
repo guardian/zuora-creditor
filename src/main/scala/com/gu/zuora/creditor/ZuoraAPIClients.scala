@@ -1,38 +1,28 @@
 package com.gu.zuora.creditor
 
 import java.lang.System.getenv
-import java.net.URI
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
 import com.amazonaws.services.kms.AWSKMSClientBuilder
 import com.amazonaws.services.kms.model.DecryptRequest
 import com.amazonaws.util.Base64
-import com.gu.zuora.creditor.Types.{RawCSVText, ZuoraSoapClientError, SerialisedJson}
-import com.gu.zuora.soap.{CallOptions, Create, CreateResponse, SessionHeader, Soap, ZObjectable}
-
-import scala.reflect.internal.util.StringOps
+import com.gu.zuora.creditor.Types.{RawCSVText, SerialisedJson}
 import scalaj.http.HttpOptions.readTimeout
 import scalaj.http.{HttpRequest, _}
 
+import scala.reflect.internal.util.StringOps
+
 trait ZuoraRestClient {
   def makeRestGET(path: String): SerialisedJson
+
   def downloadFile(path: String): RawCSVText
+
   def makeRestPOST(path: String)(commandJSON: SerialisedJson): SerialisedJson
 }
 
-trait ZuoraSoapClient {
-  // https://knowledgecenter.zuora.com/DC_Developers/SOAP_API/E_SOAP_API_Calls/create_call
-  val maxNumberOfCreateObjects = 50
-  def create(zObjects: Seq[ZObjectable]): Either[ZuoraSoapClientError, CreateResponse]
-}
 
-trait ZuoraAPIClients {
-  def zuoraRestClient: ZuoraRestClient
-  def zuoraSoapClient: ZuoraSoapClient
-}
-
-object ZuoraAPIClientsFromEnvironment extends ZuoraAPIClients with Logging {
+object ZuoraAPIClientsFromEnvironment extends Logging {
 
   private def decryptSecret(cyphertext: String) = {
     if (getenv("SkipSecretDecryption") == "true") {
@@ -59,50 +49,14 @@ object ZuoraAPIClientsFromEnvironment extends ZuoraAPIClients with Logging {
     .header("apiSecretAccessKey", zuoraApiSecretAccessKey)
     .option(readTimeout(zuoraApiTimeout))
 
-  lazy val zuoraSoapClient: ZuoraSoapClient = new ZuoraSoapClient {
 
-    private val soapCallOptions = CallOptions(useSingleTransaction = Some(Some(false)))
-
-    private val endpoint = s"https://${if (!zuoraApiHost.startsWith("apisandbox")) "api." else ""}$zuoraApiHost/apps/services/a/83.0"
-
-    logger.info(s"Instantiating SOAP client to endpoint: $endpoint")
-
-    private val service: Soap = new com.gu.zuora.soap.SoapBindings with scalaxb.Soap11Clients with scalaxb.DispatchHttpClients {
-      override def baseAddress: URI = URI.create(endpoint)
-    }.service
-
-    logger.info(s"Instantiated SOAP client successfully")
-
-    private val sessionHeader = {
-      val loginResponse = service.login(Some(zuoraApiAccessKeyId), Some(zuoraApiSecretAccessKey))
-      if (loginResponse.isLeft) {
-        logger.error(s"Unable to log in to Zuora API. Reason: " + loginResponse.left.toOption.mkString)
-      }
-      for {
-        response <- loginResponse.right.toOption
-        result <- response.result
-        sessionId <- result.Session
-      } yield {
-        SessionHeader(sessionId)
-      }
-    }
-
-    override def create(zObjects: Seq[ZObjectable]): Either[ZuoraSoapClientError, CreateResponse] = {
-      sessionHeader.map { session =>
-        val response = service.create(Create(zObjects), soapCallOptions, session)
-        if (response.isLeft) {
-          Left(response.left.get.detail.flatMap(_.FaultMessage).flatten.getOrElse("Unknown SOAP error"))
-        } else {
-          Right(response.right.get)
-        }
-      } getOrElse Left("No session")
-    }
-  }
-
-  lazy val zuoraRestClient = new ZuoraRestClient {
+  lazy val zuoraRestClient: ZuoraRestClient = new ZuoraRestClient {
     override def makeRestGET(pathSuffix: String): SerialisedJson = makeRequest(pathSuffix).asString.body
+
     override def downloadFile(pathSuffix: String): RawCSVText = makeRequest(pathSuffix).asString.body
-    override def makeRestPOST(pathSuffix: String)(commandJSON: SerialisedJson): SerialisedJson = makeRequest(pathSuffix).postData(commandJSON).asString.body
+
+    override def makeRestPOST(pathSuffix: String)(commandJSON: SerialisedJson): SerialisedJson =
+      makeRequest(pathSuffix).postData(commandJSON).asString.body
   }
 
 }

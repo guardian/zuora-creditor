@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import com.gu.zuora.creditor.CreditTransferService._
 import com.gu.zuora.creditor.ModelReaders._
 import com.gu.zuora.creditor.Models.{ExportFile, NegativeInvoiceFileLine, NegativeInvoiceToTransfer}
-import com.gu.zuora.creditor.Types.CreditBalanceAdjustmentIDs
+import com.gu.zuora.creditor.Types.{CreditBalanceAdjustmentIDs, RawCSVText, SerialisedJson}
 import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -13,9 +13,15 @@ class CreditTransferServiceTest extends FlatSpec with Matchers with CreditTransf
 
   private val TestSubscriberId = "A-S012345"
 
-  private val ZuoraClients = new TestZuoraAPIClients
+  private val ZuoraRestClientStub = new ZuoraRestClient {
+    override def makeRestGET(path: String): SerialisedJson = ???
 
-  private val downloadGeneratedExportFileFunc = ZuoraExportDownloadService.apply(ZuoraClients.zuoraRestClient) _
+    override def downloadFile(path: String): RawCSVText = ???
+
+    override def makeRestPOST(path: String)(commandJSON: SerialisedJson): SerialisedJson = ???
+  }
+
+  private val downloadGeneratedExportFileFunc = ZuoraExportDownloadService.apply(ZuoraRestClientStub) _
 
   behavior of "CreditTransferService"
 
