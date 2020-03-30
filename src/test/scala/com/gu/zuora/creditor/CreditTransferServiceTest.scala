@@ -13,7 +13,9 @@ class CreditTransferServiceTest extends FlatSpec with Matchers with CreditTransf
 
   private val TestSubscriberId = "A-S012345"
 
-  private implicit val ZuoraClients = new TestZuoraAPIClients
+  private val ZuoraClients = new TestZuoraAPIClients
+
+  private val downloadGeneratedExportFileFunc = ZuoraExportDownloadService.apply(ZuoraClients.zuoraRestClient) _
 
   behavior of "CreditTransferService"
 
@@ -92,7 +94,8 @@ class CreditTransferServiceTest extends FlatSpec with Matchers with CreditTransf
 
     val numberOfCalls = new AtomicInteger
     val service = new CreditTransferService(
-      getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls))
+      getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls)),
+      downloadGeneratedExportFileFunc
     )
     val (error, success) = service.createCreditBalanceAdjustments(adjustmentsToCreate)
     assert(numberOfCalls.intValue() == 1)
@@ -114,6 +117,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers with CreditTransf
     val numberOfCalls = new AtomicInteger
     val service = new CreditTransferService(
       getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls)),
+      downloadGeneratedExportFileFunc,
       batchSize = 2
     )
     val (error, success) = service.createCreditBalanceAdjustments(adjustmentsToCreate)
@@ -133,7 +137,10 @@ class CreditTransferServiceTest extends FlatSpec with Matchers with CreditTransf
     val numberOfCalls = new AtomicInteger
     val adjustCreditBalanceSpy = getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls))
 
-    val service = new CreditTransferService(adjustCreditBalanceSpy)
+    val service = new CreditTransferService(
+      adjustCreditBalanceSpy,
+      downloadGeneratedExportFileFunc
+    )
     val (error, success) = service.createCreditBalanceAdjustments(adjustmentsToCreate)
     numberOfCalls.intValue() shouldEqual 0
     assert(error.isEmpty && success.isEmpty)
@@ -145,7 +152,10 @@ class CreditTransferServiceTest extends FlatSpec with Matchers with CreditTransf
       createTestCreditBalanceAdjustmentCommand(s"Refunding-$TestSubscriberId-B")
     )
 
-    val service = new CreditTransferService(getAdjustCreditBalanceTestFunc(failICommandsAtIndexes = Set(0)))
+    val service = new CreditTransferService(
+      getAdjustCreditBalanceTestFunc(failICommandsAtIndexes = Set(0)),
+      downloadGeneratedExportFileFunc
+    )
     val (error, success) = service.createCreditBalanceAdjustments(adjustmentsToCreate)
     error.size shouldEqual 1
     success shouldEqual Seq(
@@ -155,7 +165,10 @@ class CreditTransferServiceTest extends FlatSpec with Matchers with CreditTransf
 
   it should "makeCreditAdjustments for no invoices" in {
     val adjustCreditBalanceSuccessStub = getAdjustCreditBalanceTestFunc()
-    val service = new CreditTransferService(adjustCreditBalanceSuccessStub)
+    val service = new CreditTransferService(
+      adjustCreditBalanceSuccessStub,
+      downloadGeneratedExportFileFunc
+    )
     service.makeCreditAdjustments(Set.empty) shouldEqual Seq.empty
   }
 
@@ -165,7 +178,10 @@ class CreditTransferServiceTest extends FlatSpec with Matchers with CreditTransf
       NegativeInvoiceToTransfer("INV012346", -2.111111, TestSubscriberId)
     )
 
-    val service = new CreditTransferService(getAdjustCreditBalanceTestFunc())
+    val service = new CreditTransferService(
+      getAdjustCreditBalanceTestFunc(),
+      downloadGeneratedExportFileFunc
+    )
     val expected: CreditBalanceAdjustmentIDs = Seq("INV012345", "INV012346")
 
     val createdAdjustments = service.makeCreditAdjustments(invoices)

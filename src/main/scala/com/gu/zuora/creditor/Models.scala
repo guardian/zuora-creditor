@@ -8,8 +8,6 @@ import purecsv.unsafe.CSVReader
 
 object Models {
 
-
-
   trait ExportFileLine
   case class NegativeInvoiceFileLine(subscriptionName: String, invoiceNumber: String, invoiceDate: String, invoiceBalance: String) extends ExportFileLine
   case object NegativeInvoiceFileLine {

@@ -1,7 +1,7 @@
 package com.gu.zuora.creditor
 
 import com.gu.zuora.creditor.Models.{ExportFile, NegativeInvoiceFileLine, NegativeInvoiceToTransfer}
-import com.gu.zuora.creditor.Types.{CreditBalanceAdjustmentIDs, ErrorMessage, ExportId, NegativeInvoiceReport}
+import com.gu.zuora.creditor.Types._
 import com.gu.zuora.creditor.ZuoraCreditBalanceAdjustment.ZuoraCreditBalanceAdjustmentRes
 import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment
 import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment._
@@ -40,17 +40,14 @@ object CreditTransferService extends Logging {
 
 class CreditTransferService(
                              adjustCreditBalance: Seq[CreateCreditBalanceAdjustment] => ZuoraCreditBalanceAdjustmentRes,
-                             batchSize: Int = CreditTransferService.maxNumberOfCreateObjects)
-                           (implicit zuoraClients: ZuoraAPIClients) extends Logging {
+                             downloadGeneratedExportFile: ExportId => Option[RawCSVText],
+                             batchSize: Int = CreditTransferService.maxNumberOfCreateObjects) extends Logging {
 
   import CreditTransferService._
   import ModelReaders._
 
-  private implicit val zuoraRestClient = zuoraClients.zuoraRestClient
-  private val zuoraExportDownloader = new ZuoraExportDownloadService
-
   def processExportFile(exportId: ExportId): Int = {
-    val maybeExportCSV = zuoraExportDownloader.downloadGeneratedExportFile(exportId)
+    val maybeExportCSV = downloadGeneratedExportFile(exportId)
     val invoicesWhichNeedCrediting = maybeExportCSV.map(x => invoicesFromReport(ExportFile(x))).getOrElse {
       logger.error("Unable to download export of negative invoices to credit")
       Set.empty[NegativeInvoiceToTransfer]
@@ -87,7 +84,7 @@ class CreditTransferService(
     }
   }
 
-  def createCreditBalanceAdjustments(adjustmentsToMake: Seq[CreateCreditBalanceAdjustment]) = {
+  def createCreditBalanceAdjustments(adjustmentsToMake: Seq[CreateCreditBalanceAdjustment]): (List[ErrorMessage], CreditBalanceAdjustmentIDs) = {
     val batches = adjustmentsToMake.grouped(batchSize).toList
     logger.info(s"createCreditBalanceAdjustments batches: $batches")
     val result = batches.flatMap(adjustCreditBalance)

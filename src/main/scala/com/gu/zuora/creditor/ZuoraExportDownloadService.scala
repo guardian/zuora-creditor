@@ -5,9 +5,16 @@ import play.api.libs.json.Json.parse
 
 import scala.util.Try
 
-class ZuoraExportDownloadService(implicit zuoraRestClient: ZuoraRestClient) extends Logging {
+object ZuoraExportDownloadService extends Logging {
 
-  def downloadGeneratedExportFile(exportId: ExportId): Option[RawCSVText] = {
+  def apply(zuoraRestClient: ZuoraRestClient)(exportId: ExportId): Option[RawCSVText] = {
+    def getZuoraExport(exportId: ExportId) = zuoraRestClient.makeRestGET(s"object/export/$exportId")
+
+    def extractFileId(response: SerialisedJson) =
+      Try((parse(response) \ "FileId").asOpt[String]).toOption.flatten.filter(_.nonEmpty)
+
+    def downloadExportFile(fileId: FileId) = zuoraRestClient.downloadFile(s"file/$fileId")
+
     Option(exportId).filter(_.nonEmpty).flatMap { validExportId =>
       val exportResponse = getZuoraExport(validExportId)
       val maybeFileId = extractFileId(exportResponse)
@@ -18,11 +25,6 @@ class ZuoraExportDownloadService(implicit zuoraRestClient: ZuoraRestClient) exte
     }
   }
 
-  private def getZuoraExport(exportId: ExportId) = zuoraRestClient.makeRestGET(s"object/export/$exportId")
 
-  private def extractFileId(response: SerialisedJson) =
-    Try((parse(response) \ "FileId").asOpt[String]).toOption.flatten.filter(_.nonEmpty)
-
-  private def downloadExportFile(fileId: FileId) = zuoraRestClient.downloadFile(s"file/$fileId")
 }
 

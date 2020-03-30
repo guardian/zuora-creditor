@@ -8,8 +8,9 @@ import scala.collection.JavaConverters._
 
 class Lambda extends RequestHandler[KeyValue, KeyValue] with Logging {
 
-  private implicit val zuoraClients = ZuoraAPIClientsFromEnvironment
-  private implicit val zuoraRestClient = zuoraClients.zuoraRestClient
+  private val zuoraClients = ZuoraAPIClientsFromEnvironment
+  private val zuoraRestClient = zuoraClients.zuoraRestClient
+  private val zuoraGenerateExport = ZuoraExportGenerator.apply(zuoraRestClient) _
 
   val exportCommands = Map(
     "GetNegativeHolidaySuspensionInvoices" -> GetNegativeHolidaySuspensionInvoices
@@ -22,7 +23,7 @@ class Lambda extends RequestHandler[KeyValue, KeyValue] with Logging {
     if (shouldScheduleReport) {
       val maybeExportId = for {
         exportCommand <- exportCommands.get(event.get("scheduleReport"))
-        exportId <- new ZuoraExportGenerator(exportCommand).generate()
+        exportId <- zuoraGenerateExport(exportCommand)
       } yield {
         Map("creditInvoicesFromExport" -> exportId)
       }
@@ -30,9 +31,12 @@ class Lambda extends RequestHandler[KeyValue, KeyValue] with Logging {
       (maybeExportId getOrElse Map("nothingMoreToDo" -> true.toString)).asJava
     } else if (shouldCreditInvoices) {
 
-      val invoiceCreditor = new CreditTransferService(new ZuoraCreditBalanceAdjustment().apply)
+      val creditTransferService = new CreditTransferService(
+        adjustCreditBalance = ZuoraCreditBalanceAdjustment.apply(zuoraRestClient),
+        downloadGeneratedExportFile = ZuoraExportDownloadService.apply(zuoraRestClient)
+      )
       val exportId = event.get("creditInvoicesFromExport")
-      val res = Map("numberOfInvoicesCredited" -> invoiceCreditor.processExportFile(exportId).toString).asJava
+      val res = Map("numberOfInvoicesCredited" -> creditTransferService.processExportFile(exportId).toString).asJava
       logger.info(s"numberOfInvoicesCredited ${res.asScala.toMap}")
       res
     } else {

@@ -1,23 +1,15 @@
 package com.gu.zuora.creditor
 
 import com.gu.zuora.creditor.Types.{CreditBalanceAdjustmentID, ErrorMessage}
-import com.gu.zuora.creditor.ZuoraCreditBalanceAdjustment.ZuoraCreditBalanceAdjustmentRes
 import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json.{JsObject, Json}
 
-import scala.util.Try
-
-object ZuoraCreditBalanceAdjustment {
+object ZuoraCreditBalanceAdjustment extends Logging {
   type ZuoraCreditBalanceAdjustmentRes = Seq[Either[ErrorMessage, CreditBalanceAdjustmentID]]
-}
-
-// TODO refactor how we pass zuoraRestClient
-
-class ZuoraCreditBalanceAdjustment(implicit zuoraRestClient: ZuoraRestClient) extends Logging {
 
   private val reqPath = "action/create"
 
-  def apply(adjustments: Seq[CreateCreditBalanceAdjustment]): ZuoraCreditBalanceAdjustmentRes = {
+  def apply(zuoraRestClient: ZuoraRestClient)(adjustments: Seq[CreateCreditBalanceAdjustment]): ZuoraCreditBalanceAdjustmentRes = {
 
     val reqBody = CreateCreditBalanceAdjustment.toBatchCreateJson(adjustments)
 
@@ -30,10 +22,6 @@ class ZuoraCreditBalanceAdjustment(implicit zuoraRestClient: ZuoraRestClient) ex
       if (isSuccess) Right((json \ "Id").as[String])
       else Left((json \ "Errors").get.toString)
     }
-  }
-
-  def extractExportId(json: JsValue): Option[String] = {
-    Try((json \ "Id").asOpt[String]).toOption.flatten.filter(_.nonEmpty)
   }
 
 }

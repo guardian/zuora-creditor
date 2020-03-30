@@ -13,15 +13,16 @@ class ZuoraExportDownloadServiceTest extends FlatSpec {
     """lyric,lyric,lyric,lyric
       |abc,123,abc,123""".stripMargin
 
-  implicit val zuoraRestClient = new TestRestClient {
+  private val zuoraRestClient = new TestRestClient {
 
     override def downloadFile(path: String): RawCSVText = {
-      if (path ==  s"file/$fileId") {
+      if (path == s"file/$fileId") {
         expectedCSV
       } else {
         ""
       }
     }
+
     override def makeRestGET(path: String): SerialisedJson = {
       if (path == s"object/export/$exportId") {
         s"""{"FileId":"$fileId"}"""
@@ -36,16 +37,16 @@ class ZuoraExportDownloadServiceTest extends FlatSpec {
   behavior of "ZuoraExportDownloaderTest"
 
   it should "downloadGeneratedExportFile" in {
-    val zuoraExportDownloader = new ZuoraExportDownloadService
-    val csvFile = zuoraExportDownloader.downloadGeneratedExportFile(exportId)
+    val downloadGeneratedExportFile = ZuoraExportDownloadService.apply(zuoraRestClient) _
+    val csvFile = downloadGeneratedExportFile(exportId)
     assert(csvFile.contains(expectedCSV))
-    val unknownCsvFile = zuoraExportDownloader.downloadGeneratedExportFile(unknownExportId)
+    val unknownCsvFile = downloadGeneratedExportFile(unknownExportId)
     assert(unknownCsvFile.isEmpty)
-    val invalidCsvFile1 = zuoraExportDownloader.downloadGeneratedExportFile(invalidExportId)
+    val invalidCsvFile1 = downloadGeneratedExportFile(invalidExportId)
     assert(invalidCsvFile1.isEmpty)
-    val invalidCsvFile2 = zuoraExportDownloader.downloadGeneratedExportFile(null)
+    val invalidCsvFile2 = downloadGeneratedExportFile(null)
     assert(invalidCsvFile2.isEmpty)
-    val invalidCsvFile3 = zuoraExportDownloader.downloadGeneratedExportFile("")
+    val invalidCsvFile3 = downloadGeneratedExportFile("")
     assert(invalidCsvFile3.isEmpty)
   }
 
