@@ -14,5 +14,6 @@ object Types {
   type SerialisedJson = String
   type ZOQLQueryFragment = String
   type ZuoraSoapClientError = String
-  type CreditBalanceAdjustmentIDs = Seq[String]
+  type CreditBalanceAdjustmentID = String
+  type CreditBalanceAdjustmentIDs = Seq[CreditBalanceAdjustmentID]
 }

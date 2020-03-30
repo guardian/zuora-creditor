@@ -2,7 +2,7 @@ package com.gu.zuora.creditor
 
 import com.amazonaws.services.lambda.runtime.{Context, RequestHandler}
 import com.gu.zuora.creditor.Types.KeyValue
-import com.gu.zuora.creditor.holidaysuspension.{CreateHolidaySuspensionCredit, GetNegativeHolidaySuspensionInvoices}
+import com.gu.zuora.creditor.holidaysuspension.GetNegativeHolidaySuspensionInvoices
 
 import scala.collection.JavaConverters._
 
@@ -26,11 +26,15 @@ class Lambda extends RequestHandler[KeyValue, KeyValue] with Logging {
       } yield {
         Map("creditInvoicesFromExport" -> exportId)
       }
+      logger.info(s"maybeExportId $maybeExportId")
       (maybeExportId getOrElse Map("nothingMoreToDo" -> true.toString)).asJava
     } else if (shouldCreditInvoices) {
-      val invoiceCreditor = new CreditTransferService(CreateHolidaySuspensionCredit)
+
+      val invoiceCreditor = new CreditTransferService(new ZuoraCreditBalanceAdjustment().apply)
       val exportId = event.get("creditInvoicesFromExport")
-      Map("numberOfInvoicesCredited" -> invoiceCreditor.processExportFile(exportId).toString).asJava
+      val res = Map("numberOfInvoicesCredited" -> invoiceCreditor.processExportFile(exportId).toString).asJava
+      logger.info(s"numberOfInvoicesCredited ${res.asScala.toMap}")
+      res
     } else {
       logger.error(s"Lambda called with incorrect input data: $event")
       Map("nothingToDo" -> true.toString).asJava

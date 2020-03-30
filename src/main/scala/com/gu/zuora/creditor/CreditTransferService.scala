@@ -1,16 +1,19 @@
 package com.gu.zuora.creditor
 
-import com.gu.zuora.creditor.Models.{CreateCreditBalanceAdjustmentCommand, ExportFile, NegativeInvoiceFileLine, NegativeInvoiceToTransfer}
+import com.gu.zuora.creditor.Models.{ExportFile, NegativeInvoiceFileLine, NegativeInvoiceToTransfer}
 import com.gu.zuora.creditor.Types.{CreditBalanceAdjustmentIDs, ErrorMessage, ExportId, NegativeInvoiceReport}
-import com.gu.zuora.soap.CreditBalanceAdjustment
+import com.gu.zuora.creditor.ZuoraCreditBalanceAdjustment.ZuoraCreditBalanceAdjustmentRes
+import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment
+import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment._
 
 import scala.math.BigDecimal.RoundingMode.UP
-import scala.util.Try
+import scala.util.{Left, Right, Try}
 
-
-class CreditTransferService(command: CreateCreditBalanceAdjustmentCommand)(implicit zuoraClients: ZuoraAPIClients) extends Logging {
+class CreditTransferService(adjustCreditBalance: Seq[CreateCreditBalanceAdjustment] => ZuoraCreditBalanceAdjustmentRes)
+                           (implicit zuoraClients: ZuoraAPIClients) extends Logging {
 
   import ModelReaders._
+
   private implicit val zuoraRestClient = zuoraClients.zuoraRestClient
   private val zuoraExportDownloader = new ZuoraExportDownloadService
 
@@ -55,37 +58,35 @@ class CreditTransferService(command: CreateCreditBalanceAdjustmentCommand)(impli
       val allInvoiceNumbers = invoicesToCredit.map(a => s"${a.invoiceNumber} (${a.invoiceBalance})").mkString(", ")
       logger.info(s"Creating ${invoicesToCredit.length} Credit Balance Adjustments for Invoices: $allInvoiceNumbers")
 
-      val adjustmentsToMake = invoicesToCredit.map(command.createCreditBalanceAdjustment)
-      val createdAdjustments = createCreditBalanceAdjustments(adjustmentsToMake)
+      val adjustmentsToMake = invoicesToCredit.map(toCreditBalanceAdjustment)
+      logger.info(s"Attempting to create ${invoices.size} Credit Balance Adjustments for Invoices: " +
+        s"${invoices.map(_.invoiceNumber).mkString(", ")}")
 
-      logger.info(s"Successfully created ${createdAdjustments.size} Credit Balance Adjustments with IDs: ${createdAdjustments.mkString(", ")}")
-      createdAdjustments
+      val (errors, success) = createCreditBalanceAdjustments(adjustmentsToMake)
+
+      logger.info(s"Successfully created ${success.size} Credit Balance Adjustments with IDs: ${success.mkString(", ")}")
+
+      if (errors.nonEmpty) {
+        val errorMsg = s"${errors.size} Errors creating Credit Balance Adjustment: ${errors.mkString(", ")}"
+        logger.error(s"${errors.size} Errors creating Credit Balance Adjustment: ${errors.mkString(", ")}")
+        // propagate error to AWS lambda metrics
+        throw new IllegalStateException(errorMsg)
+      } else success
     } else {
       Seq.empty
     }
   }
 
-  def createCreditBalanceAdjustments(adjustmentsToMake: Seq[CreditBalanceAdjustment]): CreditBalanceAdjustmentIDs = {
-    val soapClient = zuoraClients.zuoraSoapClient
-    val batches = adjustmentsToMake.grouped(soapClient.maxNumberOfCreateObjects).toList // ensures eagerness
-    batches.flatMap { adjustments =>
-      logger.info(s"Attempting to create ${adjustments.length} Credit Balance Adjustments for Invoices: ${adjustments.flatMap(_.SourceTransactionNumber).mkString(", ")}")
-      val createResponse = soapClient.create(adjustments)
-      if (createResponse.isLeft) {
-        logger.error(s"Unable to create any Credit Balance Adjustments. Reason: ${createResponse.left.get}")
-      }
-      (for {
-        responseOpt <- createResponse.right.toSeq
-        saveResult <- responseOpt.result
-      } yield {
-        for (error <- saveResult.Errors.flatten) {
-          logger.error(s"Error creating Credit Balance Adjustment: ${error.Message.flatten.mkString}")
-        }
-        val maybeId = saveResult.Id.flatten
-        maybeId.foreach(id => logger.info(s"Successfully created Credit Balance Adjustment, ID: $id"))
-        maybeId
-      }).flatten
-    }
-  }
 
+  def createCreditBalanceAdjustments(adjustmentsToMake: Seq[CreateCreditBalanceAdjustment]) = {
+    // https://www.zuora.com/developer/api-reference/#tag/Actions
+    // operations allow changes to up-to 50 objects at a time
+    val maxNumberOfCreateObjects = 50
+    val batches = adjustmentsToMake.grouped(maxNumberOfCreateObjects).toList
+    logger.info(s"createCreditBalanceAdjustments batches: $batches")
+    val result = batches.flatMap(adjustCreditBalance)
+    val errors = result.filter(_.isLeft).map(_.left.get)
+    val success = result.filter(_.isRight).map(_.right.get)
+    (errors, success)
+  }
 }
