@@ -11,6 +11,8 @@ object ZuoraCreditBalanceAdjustment {
   type ZuoraCreditBalanceAdjustmentRes = Seq[Either[ErrorMessage, CreditBalanceAdjustmentID]]
 }
 
+// TODO refactor how we pass zuoraRestClient
+
 class ZuoraCreditBalanceAdjustment(implicit zuoraRestClient: ZuoraRestClient) extends Logging {
 
   private val reqPath = "action/create"

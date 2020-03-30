@@ -9,25 +9,11 @@ import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment._
 import scala.math.BigDecimal.RoundingMode.UP
 import scala.util.{Left, Right, Try}
 
-class CreditTransferService(adjustCreditBalance: Seq[CreateCreditBalanceAdjustment] => ZuoraCreditBalanceAdjustmentRes)
-                           (implicit zuoraClients: ZuoraAPIClients) extends Logging {
+object CreditTransferService extends Logging {
 
-  import ModelReaders._
-
-  private implicit val zuoraRestClient = zuoraClients.zuoraRestClient
-  private val zuoraExportDownloader = new ZuoraExportDownloadService
-
-  def processExportFile(exportId: ExportId): Int = {
-    val maybeExportCSV = zuoraExportDownloader.downloadGeneratedExportFile(exportId)
-    val invoicesWhichNeedCrediting = maybeExportCSV.map(x => invoicesFromReport(ExportFile(x))).getOrElse {
-      logger.error("Unable to download export of negative invoices to credit")
-      Set.empty[NegativeInvoiceToTransfer]
-    }
-    if (invoicesWhichNeedCrediting.isEmpty) {
-      logger.warn("No negative invoices reqire crediting today")
-    }
-    makeCreditAdjustments(invoicesWhichNeedCrediting).size
-  }
+  // https://www.zuora.com/developer/api-reference/#tag/Actions
+  // operations allow changes to up-to 50 objects at a time
+  val maxNumberOfCreateObjects = 50
 
   def invoicesFromReport(report: NegativeInvoiceReport): Set[NegativeInvoiceToTransfer] = {
     report.reportLines.flatMap { reportLine =>
@@ -49,6 +35,30 @@ class CreditTransferService(adjustCreditBalance: Seq[CreateCreditBalanceAdjustme
       Left(s"Ignored invoice ${reportLine.invoiceNumber} dated ${reportLine.invoiceDate} with balance ${reportLine.invoiceBalance} for subscription: " +
         s"${reportLine.subscriptionName} as its balance is not negative or some other piece of information is missing")
     }
+  }
+}
+
+class CreditTransferService(
+                             adjustCreditBalance: Seq[CreateCreditBalanceAdjustment] => ZuoraCreditBalanceAdjustmentRes,
+                             batchSize: Int = CreditTransferService.maxNumberOfCreateObjects)
+                           (implicit zuoraClients: ZuoraAPIClients) extends Logging {
+
+  import CreditTransferService._
+  import ModelReaders._
+
+  private implicit val zuoraRestClient = zuoraClients.zuoraRestClient
+  private val zuoraExportDownloader = new ZuoraExportDownloadService
+
+  def processExportFile(exportId: ExportId): Int = {
+    val maybeExportCSV = zuoraExportDownloader.downloadGeneratedExportFile(exportId)
+    val invoicesWhichNeedCrediting = maybeExportCSV.map(x => invoicesFromReport(ExportFile(x))).getOrElse {
+      logger.error("Unable to download export of negative invoices to credit")
+      Set.empty[NegativeInvoiceToTransfer]
+    }
+    if (invoicesWhichNeedCrediting.isEmpty) {
+      logger.warn("No negative invoices reqire crediting today")
+    }
+    makeCreditAdjustments(invoicesWhichNeedCrediting).size
   }
 
   def makeCreditAdjustments(invoices: Set[NegativeInvoiceToTransfer]): CreditBalanceAdjustmentIDs = {
@@ -77,12 +87,8 @@ class CreditTransferService(adjustCreditBalance: Seq[CreateCreditBalanceAdjustme
     }
   }
 
-
   def createCreditBalanceAdjustments(adjustmentsToMake: Seq[CreateCreditBalanceAdjustment]) = {
-    // https://www.zuora.com/developer/api-reference/#tag/Actions
-    // operations allow changes to up-to 50 objects at a time
-    val maxNumberOfCreateObjects = 50
-    val batches = adjustmentsToMake.grouped(maxNumberOfCreateObjects).toList
+    val batches = adjustmentsToMake.grouped(batchSize).toList
     logger.info(s"createCreditBalanceAdjustments batches: $batches")
     val result = batches.flatMap(adjustCreditBalance)
     val errors = result.filter(_.isLeft).map(_.left.get)
