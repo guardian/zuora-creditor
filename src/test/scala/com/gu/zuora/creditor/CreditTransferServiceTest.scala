@@ -8,7 +8,6 @@ import com.gu.zuora.creditor.Models.{ExportFile, NegativeInvoiceFileLine, Negati
 import com.gu.zuora.creditor.Types.{CreditBalanceAdjustmentIDs, RawCSVText, SerialisedJson}
 import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment
 import org.scalatest.{FlatSpec, Matchers}
-import CreditTransferServiceTestUtils._
 
 class CreditTransferServiceTest extends FlatSpec with Matchers {
 
@@ -193,6 +192,27 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
     val createdAdjustments = service.makeCreditAdjustments(invoices)
     createdAdjustments shouldEqual expected
+  }
+
+  private def createTestCreditBalanceAdjustmentCommand(invoiceId: String) = {
+    CreateCreditBalanceAdjustment(
+      Amount = 1.2,
+      Comment = "unit test",
+      ReasonCode = "Holiday Suspension Credit",
+      SourceTransactionNumber = invoiceId,
+      Type = "Increase"
+    )
+  }
+
+  private def getAdjustCreditBalanceTestFunc(failICommandsAtIndexes: Set[Int] = Set.empty[Int],
+                                     callCounterOpt: Option[AtomicInteger] = None) = {
+    command: Seq[CreateCreditBalanceAdjustment] => {
+      callCounterOpt.foreach(_.incrementAndGet())
+      command.zipWithIndex.map { case (c, idx) =>
+        if (failICommandsAtIndexes.contains(idx)) Left("Error") else
+          Right(c.SourceTransactionNumber)
+      }
+    }
   }
 
 }
