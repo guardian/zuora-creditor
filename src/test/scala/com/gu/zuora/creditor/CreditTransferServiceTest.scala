@@ -8,8 +8,9 @@ import com.gu.zuora.creditor.Models.{ExportFile, NegativeInvoiceFileLine, Negati
 import com.gu.zuora.creditor.Types.{CreditBalanceAdjustmentIDs, RawCSVText, SerialisedJson}
 import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment
 import org.scalatest.{FlatSpec, Matchers}
+import CreditTransferServiceTestUtils._
 
-class CreditTransferServiceTest extends FlatSpec with Matchers with CreditTransferServiceTestMixin {
+class CreditTransferServiceTest extends FlatSpec with Matchers {
 
   private val TestSubscriberId = "A-S012345"
 

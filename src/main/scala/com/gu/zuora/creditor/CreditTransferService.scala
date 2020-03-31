@@ -88,8 +88,8 @@ class CreditTransferService(
     val batches = adjustmentsToMake.grouped(batchSize).toList
     logger.info(s"createCreditBalanceAdjustments batches: $batches")
     val result = batches.flatMap(adjustCreditBalance)
-    val errors = result.filter(_.isLeft).map(_.left.get)
-    val success = result.filter(_.isRight).map(_.right.get)
+    val errors = result.collect { case Left(error) => error }
+    val success = result.collect { case Right(success) => success }
     (errors, success)
   }
 }

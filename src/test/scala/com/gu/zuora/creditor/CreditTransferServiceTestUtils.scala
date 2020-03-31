@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment
 
-trait CreditTransferServiceTestMixin {
+object CreditTransferServiceTestUtils {
 
   def createTestCreditBalanceAdjustmentCommand(invoiceId: String) = {
     CreateCreditBalanceAdjustment(
