@@ -15,20 +15,13 @@ scalacOptions ++= Seq(
   "-language:implicitConversions",
   "-unchecked",
   "-Xfatal-warnings",
-  //"-Xlint",
-  //"-Yno-adapted-args",
   "-Ywarn-dead-code",
   "-Ywarn-numeric-widen",
   "-Ywarn-value-discard",
   "-Xfuture"
 )
 
-lazy val root = (project in file(".")).enablePlugins(ScalaxbPlugin, RiffRaffArtifact)
-val dispatchV = "0.11.4" // TODO - Needs upgrading to 0.13.x and generation code changing to accommodate.
-
-scalaxbDispatchVersion in (Compile, scalaxb) := dispatchV
-scalaxbPackageName in (Compile, scalaxb) := "com.gu.zuora.soap"
-scalaxbAsync in (Compile, scalaxb) := false
+lazy val root = (project in file(".")).enablePlugins(RiffRaffArtifact)
 
 assemblyJarName := "zuora-creditor.jar"
 riffRaffPackageType := assembly.value
@@ -38,17 +31,12 @@ riffRaffManifestProjectName := "MemSub::Membership Admin::Zuora Creditor"
 
 addCommandAlias("dist", ";riffRaffArtifact")
 
-resolvers += "Sonatype releases" at "https://oss.sonatype.org/content/repositories/releases"
-
 val jacksonVersion = "2.9.9"
 
 libraryDependencies ++= Seq(
-  "org.scala-lang.modules" %% "scala-xml" % "1.0.1" % "compile",
-  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.1" % "compile",
   "com.amazonaws" % "aws-lambda-java-log4j" % "1.0.0",
   "com.amazonaws" % "aws-lambda-java-core" % "1.2.0",
   "com.amazonaws" % "aws-java-sdk-kms" % "1.11.566",
-  "net.databinder.dispatch" %% "dispatch-core" % dispatchV,
   "com.typesafe.play" %% "play-json" % "2.6.13",
   "org.scalaj" %% "scalaj-http" % "2.4.1",
   "com.github.melrief" %% "purecsv" % "0.1.1",
