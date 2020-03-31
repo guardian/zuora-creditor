@@ -2,9 +2,10 @@ package com.gu.zuora.creditor
 
 import com.gu.zuora.creditor.Types.{CreditBalanceAdjustmentID, ErrorMessage}
 import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment
+import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.json.{JsObject, Json}
 
-object ZuoraCreditBalanceAdjustment extends Logging {
+object ZuoraCreditBalanceAdjustment extends LazyLogging {
   type ZuoraCreditBalanceAdjustmentRes = Seq[Either[ErrorMessage, CreditBalanceAdjustmentID]]
 
   private val reqPath = "action/create"

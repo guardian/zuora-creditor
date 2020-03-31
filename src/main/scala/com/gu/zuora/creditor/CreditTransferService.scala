@@ -5,11 +5,12 @@ import com.gu.zuora.creditor.Types._
 import com.gu.zuora.creditor.ZuoraCreditBalanceAdjustment.ZuoraCreditBalanceAdjustmentRes
 import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment
 import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment._
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.math.BigDecimal.RoundingMode.UP
 import scala.util.{Left, Right, Try}
 
-object CreditTransferService extends Logging {
+object CreditTransferService extends LazyLogging {
 
   // https://www.zuora.com/developer/api-reference/#tag/Actions
   // operations allow changes to up-to 50 objects at a time
@@ -41,7 +42,7 @@ object CreditTransferService extends Logging {
 class CreditTransferService(
                              adjustCreditBalance: Seq[CreateCreditBalanceAdjustment] => ZuoraCreditBalanceAdjustmentRes,
                              downloadGeneratedExportFile: ExportId => Option[RawCSVText],
-                             batchSize: Int = CreditTransferService.maxNumberOfCreateObjects) extends Logging {
+                             batchSize: Int = CreditTransferService.maxNumberOfCreateObjects) extends LazyLogging {
 
   import CreditTransferService._
   import ModelReaders._

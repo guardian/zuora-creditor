@@ -1,11 +1,12 @@
 package com.gu.zuora.creditor
 
 import com.gu.zuora.creditor.Types.{ExportId, FileId, RawCSVText, SerialisedJson}
+import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.json.Json.parse
 
 import scala.util.Try
 
-object ZuoraExportDownloadService extends Logging {
+object ZuoraExportDownloadService extends LazyLogging {
 
   def apply(zuoraRestClient: ZuoraRestClient)(exportId: ExportId): Option[RawCSVText] = {
     def getZuoraExport(exportId: ExportId) = zuoraRestClient.makeRestGET(s"object/export/$exportId")

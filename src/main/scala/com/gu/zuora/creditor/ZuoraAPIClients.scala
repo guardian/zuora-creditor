@@ -8,6 +8,7 @@ import com.amazonaws.services.kms.AWSKMSClientBuilder
 import com.amazonaws.services.kms.model.DecryptRequest
 import com.amazonaws.util.Base64
 import com.gu.zuora.creditor.Types.{RawCSVText, SerialisedJson}
+import com.typesafe.scalalogging.LazyLogging
 import scalaj.http.HttpOptions.readTimeout
 import scalaj.http.{HttpRequest, _}
 
@@ -22,7 +23,7 @@ trait ZuoraRestClient {
 }
 
 
-object ZuoraAPIClientsFromEnvironment extends Logging {
+object ZuoraAPIClientsFromEnvironment extends LazyLogging {
 
   private def decryptSecret(cyphertext: String) = {
     if (getenv("SkipSecretDecryption") == "true") {

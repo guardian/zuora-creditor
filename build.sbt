@@ -34,10 +34,11 @@ addCommandAlias("dist", ";riffRaffArtifact")
 val jacksonVersion = "2.9.9"
 
 libraryDependencies ++= Seq(
-  "com.amazonaws" % "aws-lambda-java-log4j" % "1.0.0",
   "com.amazonaws" % "aws-lambda-java-core" % "1.2.0",
   "com.amazonaws" % "aws-java-sdk-kms" % "1.11.566",
   "com.typesafe.play" %% "play-json" % "2.6.13",
+  "ch.qos.logback" % "logback-classic" % "1.2.3",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "org.scalaj" %% "scalaj-http" % "2.4.1",
   "com.github.melrief" %% "purecsv" % "0.1.1",
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % jacksonVersion,  // updated for snyk: https://app.snyk.io/org/the-guardian-cuu/project/c8aa728c-1f6a-4ede-900c-dfde0c0af9bf/

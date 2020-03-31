@@ -8,13 +8,16 @@ import purecsv.unsafe.CSVReader
 object Models {
 
   trait ExportFileLine
+
   case class NegativeInvoiceFileLine(subscriptionName: String, invoiceNumber: String, invoiceDate: String, invoiceBalance: String) extends ExportFileLine
+
   case object NegativeInvoiceFileLine {
     val selectForZOQL: ZOQLQueryFragment =
       "SELECT Subscription.Name, Invoice.InvoiceNumber, Invoice.InvoiceDate, Invoice.Balance " +
-      "FROM InvoiceItem " +
-      "WHERE Invoice.Balance < 0 and Invoice.Status = 'Posted' and Subscription.AutoRenew = 'true'"
+        "FROM InvoiceItem " +
+        "WHERE Invoice.Balance < 0 and Invoice.Status = 'Posted' and Subscription.AutoRenew = 'true'"
   }
+
   case class NegativeInvoiceToTransfer(invoiceNumber: String, invoiceBalance: BigDecimal, subscriberId: String) {
     val transferrableBalance: BigDecimal = if (invoiceBalance < 0) invoiceBalance * -1 else BigDecimal(0)
   }
@@ -29,6 +32,7 @@ object Models {
       allLines.drop(1) // discard header row!
     }
   }
+
 }
 
 object ModelReaders {

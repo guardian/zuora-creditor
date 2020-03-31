@@ -3,10 +3,11 @@ package com.gu.zuora.creditor
 import com.amazonaws.services.lambda.runtime.{Context, RequestHandler}
 import com.gu.zuora.creditor.Types.KeyValue
 import com.gu.zuora.creditor.holidaysuspension.GetNegativeHolidaySuspensionInvoices
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.JavaConverters._
 
-class Lambda extends RequestHandler[KeyValue, KeyValue] with Logging {
+class Lambda extends RequestHandler[KeyValue, KeyValue] with LazyLogging {
 
   private val zuoraRestClient = ZuoraAPIClientsFromEnvironment.zuoraRestClient
   private val zuoraGenerateExport = ZuoraExportGenerator.apply(zuoraRestClient) _

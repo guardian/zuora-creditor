@@ -2,12 +2,13 @@ package com.gu.zuora.creditor
 
 import com.gu.zuora.creditor.Models.ExportCommand
 import com.gu.zuora.creditor.Types.{ExportId, SerialisedJson}
+import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.json.Json.parse
 
 import scala.util.Try
 
 
-object ZuoraExportGenerator extends Logging {
+object ZuoraExportGenerator extends LazyLogging {
 
   def apply(zuoraRestClient: ZuoraRestClient)(command: ExportCommand): Option[ExportId] = {
     def scheduleExportInZuora: Option[ExportId] = {
