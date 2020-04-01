@@ -10,7 +10,9 @@ import com.amazonaws.util.Base64
 import com.gu.zuora.creditor.Types.{RawCSVText, SerialisedJson}
 import com.typesafe.scalalogging.LazyLogging
 import scalaj.http.HttpOptions.readTimeout
-import scalaj.http.{HttpRequest, _}
+import scalaj.http._
+import com.gu.{AppIdentity, AwsIdentity}
+import com.gu.conf.{ConfigurationLoader, SSMConfigurationLocation}
 
 import scala.reflect.internal.util.StringOps
 
@@ -24,6 +26,11 @@ trait ZuoraRestClient {
 
 
 object ZuoraAPIClientsFromEnvironment extends LazyLogging {
+
+  val identity = AppIdentity.whoAmI(defaultAppName = "mobile-apps-api")
+  val config = ConfigurationLoader.load(identity) {
+    case identity: AwsIdentity => SSMConfigurationLocation.default(identity)
+  }
 
   private def decryptSecret(cyphertext: String) = {
     if (getenv("SkipSecretDecryption") == "true") {

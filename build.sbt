@@ -36,6 +36,7 @@ val jacksonVersion = "2.9.9"
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-lambda-java-core" % "1.2.0",
   "com.amazonaws" % "aws-java-sdk-kms" % "1.11.566",
+  "com.gu" %% "simple-configuration-ssm" % "1.4.1",
   "com.typesafe.play" %% "play-json" % "2.6.13",
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
@@ -53,3 +54,6 @@ initialize := {
   val _ = initialize.value
   assert(sys.props("java.specification.version") == "1.8", "Java 8 is required for this project.")
 }
+
+resolvers += "Guardian Platform Bintray" at "https://dl.bintray.com/guardian/platforms"
+
