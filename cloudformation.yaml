@@ -113,6 +113,11 @@ Resources:
       Role: !GetAtt ZuoraCreditorRole.Arn
       Runtime: java8
       Timeout: 60
+      Environment:
+        Variables:
+          App: zuora-creditor
+          Stack: subscriptions
+          Stage: DEV
       KmsKeyArn: !GetAtt LambdaKMSKey.Arn
 
   ZuoraCreditorStepFunctionRole:
