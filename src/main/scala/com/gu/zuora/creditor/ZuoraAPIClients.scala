@@ -1,20 +1,12 @@
 package com.gu.zuora.creditor
 
-import java.lang.System.getenv
-import java.nio.ByteBuffer
-import java.nio.charset.Charset
-
-import com.amazonaws.services.kms.AWSKMSClientBuilder
-import com.amazonaws.services.kms.model.DecryptRequest
-import com.amazonaws.util.Base64
+import com.gu.conf.{ConfigurationLoader, SSMConfigurationLocation}
 import com.gu.zuora.creditor.Types.{RawCSVText, SerialisedJson}
+import com.gu.{AppIdentity, AwsIdentity}
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import scalaj.http.HttpOptions.readTimeout
 import scalaj.http._
-import com.gu.{AppIdentity, AwsIdentity}
-import com.gu.conf.{ConfigurationLoader, SSMConfigurationLocation}
-
-import scala.reflect.internal.util.StringOps
 
 trait ZuoraRestClient {
   def makeRestGET(path: String): SerialisedJson
@@ -24,30 +16,31 @@ trait ZuoraRestClient {
   def makeRestPOST(path: String)(commandJSON: SerialisedJson): SerialisedJson
 }
 
+final case class ZuoraRestConfig(
+                                  zuoraApiHost: String,
+                                  zuoraApiAccessKeyId: String,
+                                  zuoraApiSecretAccessKey: String
+                                )
 
-object ZuoraAPIClientsFromEnvironment extends LazyLogging {
 
-  val identity = AppIdentity.whoAmI(defaultAppName = "mobile-apps-api")
-  val config = ConfigurationLoader.load(identity) {
-    case identity: AwsIdentity => SSMConfigurationLocation.default(identity)
-  }
+object ZuoraAPIClientFromParameterStore extends LazyLogging {
 
-  private def decryptSecret(cyphertext: String) = {
-    if (getenv("SkipSecretDecryption") == "true") {
-      cyphertext
-    } else {
-      val encryptedKey = ByteBuffer.wrap(Base64.decode(cyphertext))
-      val client = AWSKMSClientBuilder.defaultClient
-      val request = new DecryptRequest().withCiphertextBlob(encryptedKey)
-      val plainTextKey = client.decrypt(request).getPlaintext
-      new String(plainTextKey.array(), Charset.forName("UTF-8"))
+  private val loadConfig = {
+    val identity = AppIdentity.whoAmI(defaultAppName = "zuora-creditor")
+    val config: Config = ConfigurationLoader.load(identity) {
+      case identity: AwsIdentity => SSMConfigurationLocation.default(identity)
     }
+    ZuoraRestConfig(
+      zuoraApiHost = config.getString("zuoraApiHost"),
+      zuoraApiAccessKeyId = config.getString("zuoraApiAccessKeyId"),
+      zuoraApiSecretAccessKey = config.getString("zuoraApiSecretAccessKey")
+    )
   }
 
-  private val zuoraApiAccessKeyId = getenv("ZuoraApiAccessKeyId")
-  private val zuoraApiSecretAccessKey = decryptSecret(getenv("ZuoraApiSecretAccessKey"))
-  private val zuoraApiHost = getenv("ZuoraApiHost")
-  private val zuoraApiTimeout = StringOps.oempty(getenv("ZuoraApiTimeout")).headOption.getOrElse("10000").toInt
+  private val zuoraApiTimeout = 10000
+  private val zuraConfig = loadConfig
+
+  import zuraConfig._
 
   private def makeRequest(pathSuffix: String): HttpRequest = Http(s"https://rest.$zuoraApiHost/v1/$pathSuffix")
     .header("Content-type", "application/json")

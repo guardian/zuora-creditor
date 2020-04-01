@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
 
 class Lambda extends RequestHandler[KeyValue, KeyValue] with LazyLogging {
 
-  private val zuoraRestClient = ZuoraAPIClientsFromEnvironment.zuoraRestClient
+  private val zuoraRestClient = ZuoraAPIClientFromParameterStore.zuoraRestClient
   private val zuoraGenerateExport = ZuoraExportGenerator.apply(zuoraRestClient) _
 
   val exportCommands = Map(
