@@ -1,6 +1,8 @@
 package com.gu.zuora.creditor
 
 import com.amazonaws.services.lambda.runtime.{Context, RequestHandler}
+import com.amazonaws.services.sns.AmazonSNSClient
+import com.amazonaws.services.sns.model.PublishRequest
 import com.gu.zuora.creditor.Types.KeyValue
 import com.gu.zuora.creditor.holidaysuspension.GetNegativeHolidaySuspensionInvoices
 import com.typesafe.scalalogging.LazyLogging
@@ -36,13 +38,27 @@ class Lambda extends RequestHandler[KeyValue, KeyValue] with LazyLogging {
         downloadGeneratedExportFile = ZuoraExportDownloadService.apply(zuoraRestClient)
       )
       val exportId = event.get("creditInvoicesFromExport")
-      val res = Map("numberOfInvoicesCredited" -> creditTransferService.processExportFile(exportId).toString).asJava
-      logger.info(s"numberOfInvoicesCredited ${res.asScala.toMap}")
-      res
+      val adjustmentsCreated = creditTransferService.processExportFile(exportId)
+      val result = Map("numberOfInvoicesCredited" -> adjustmentsCreated.toString).asJava
+      val message = s"numberOfInvoicesCredited = $adjustmentsCreated"
+      if (adjustmentsCreated > 0) notifyIfCreditBalanceAdjustmentTriggered(message)
+      logger.info(message)
+      result
     } else {
       logger.error(s"Lambda called with incorrect input data: $event")
       Map("nothingToDo" -> true.toString).asJava
     }
+  }
+
+  private def notifyIfCreditBalanceAdjustmentTriggered(message: String) = {
+    val topicArn = System.getenv("alarms_topic_arn")
+    logger.info(s"sending notification about numberOfInvoicesCredited > 0 to [$topicArn]")
+    val sns = AmazonSNSClient.builder().build()
+    val snsPubReq = new PublishRequest()
+      .withSubject("ALARM: numberOfInvoicesCredited > 0")
+      .withTargetArn(topicArn)
+      .withMessage(message)
+    sns.publish(snsPubReq)
   }
 
 }

@@ -35,6 +35,7 @@ val jacksonVersion = "2.9.9"
 
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-lambda-java-core" % "1.2.0",
+  "com.amazonaws" % "aws-java-sdk-sns" % "1.11.754",
   "com.amazonaws" % "aws-java-sdk-kms" % "1.11.566",
   "com.gu" %% "simple-configuration-ssm" % "1.4.1",
   "com.typesafe.play" %% "play-json" % "2.6.13",
