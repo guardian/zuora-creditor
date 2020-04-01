@@ -117,7 +117,7 @@ Resources:
         Variables:
           App: zuora-creditor
           Stack: subscriptions
-          Stage: DEV
+          Stage: !Ref Stage
       KmsKeyArn: !GetAtt LambdaKMSKey.Arn
 
   ZuoraCreditorStepFunctionRole:
