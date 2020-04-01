@@ -49,8 +49,11 @@ class CreditTransferService(
 
   def processExportFile(exportId: ExportId): Int = {
     val maybeExportCSV = downloadGeneratedExportFile(exportId)
+    if(maybeExportCSV.isEmpty) {
+      // propagate exception to lambda
+      throw new IllegalStateException("Unable to download export of negative invoices to credit")
+    }
     val invoicesWhichNeedCrediting = maybeExportCSV.map(x => invoicesFromReport(ExportFile(x))).getOrElse {
-      logger.error("Unable to download export of negative invoices to credit")
       Set.empty[NegativeInvoiceToTransfer]
     }
     if (invoicesWhichNeedCrediting.isEmpty) {

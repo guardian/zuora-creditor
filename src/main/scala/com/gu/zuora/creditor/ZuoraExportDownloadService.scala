@@ -18,6 +18,7 @@ object ZuoraExportDownloadService extends LazyLogging {
 
     Option(exportId).filter(_.nonEmpty).flatMap { validExportId =>
       val exportResponse = getZuoraExport(validExportId)
+      logger.info(s"getZuoraExport response: $exportResponse")
       val maybeFileId = extractFileId(exportResponse)
       if (maybeFileId.isEmpty) {
         if (exportResponse.contains("Authentication error")) throw new IllegalStateException("ZUORA Authentication error")
