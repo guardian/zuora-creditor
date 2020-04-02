@@ -80,11 +80,11 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
   behavior of "processExportFile"
 
-  private val IgnoredValue = "123"
+  private val IgnoredValue = "ignored"
 
   private val downloadEmptyReport = (_: String) => None
 
-  private val downloadReportWith3Invoices = (_: String) => {
+  private val downloadReportWith3ItemsFrom2Invoices = (_: String) => {
     Option(
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.10
@@ -94,7 +94,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     )
   }
 
-  private val downloadReportWith2Invoices = (_: String) => {
+  private val downloadReportWith2InvoiceItemsFrom2Invoices = (_: String) => {
     Option(
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.10
@@ -109,13 +109,13 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
     val adjustmentsReportActual = new CreditTransferService(
       getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls)),
-      downloadReportWith3Invoices,
+      downloadReportWith3ItemsFrom2Invoices,
       batchSize = 2
     ).processExportFile(IgnoredValue)
 
     adjustmentsReportActual shouldEqual AdjustmentsReport(
       creditBalanceAdjustmentsTotal = 3,
-      negInvoicesWithHolidayCreditAutomated = 2
+      negInvoicesWithHolidayCreditAutomated = 1
     )
     numberOfCalls.intValue() shouldEqual 2
   }
@@ -138,7 +138,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
   an[IllegalStateException] should be thrownBy {
     new CreditTransferService(
       getAdjustCreditBalanceTestFunc(failICommandsAtIndexes = Set(0)),
-      downloadReportWith2Invoices
+      downloadReportWith2InvoiceItemsFrom2Invoices
     ).processExportFile(IgnoredValue)
   }
 
@@ -148,7 +148,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     val numberOfCalls = new AtomicInteger
     val adjustmentsReportActual = new CreditTransferService(
       getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls)),
-      downloadReportWith2Invoices
+      downloadReportWith2InvoiceItemsFrom2Invoices
     ).processExportFile(IgnoredValue)
 
     adjustmentsReportActual shouldEqual AdjustmentsReport(

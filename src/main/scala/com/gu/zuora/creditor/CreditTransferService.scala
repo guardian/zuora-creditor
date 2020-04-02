@@ -50,9 +50,7 @@ class CreditTransferService(
   def processExportFile(exportId: ExportId): AdjustmentsReport = {
     val maybeExportCSV = downloadGeneratedExportFile(exportId)
     maybeExportCSV.foreach { rawCSV =>
-      logger.info("==========================================")
       logger.info(s"csv export: $rawCSV")
-      logger.info("==========================================")
     }
     val invoicesWhichNeedCrediting = maybeExportCSV.map(x => processInvoicesFromReport(ExportFile(x))).getOrElse {
       logger.error("Unable to download export of negative invoices to credit")
@@ -61,7 +59,8 @@ class CreditTransferService(
     if (invoicesWhichNeedCrediting.isEmpty) {
       logger.warn("No negative invoices require crediting today")
     }
-    val negativeInvoicesWithAutHolidayCredit = invoicesWhichNeedCrediting.count(_.ratePlanName.toLowerCase.contains("automated"))
+    val negativeInvoicesWithAutHolidayCredit = invoicesWhichNeedCrediting.
+      filter(_.ratePlanName.toLowerCase.contains("automated")).groupBy(_.invoiceNumber).size
     val makeCreditAdjustmentsResult = makeCreditAdjustments(invoicesWhichNeedCrediting)
     AdjustmentsReport(
       creditBalanceAdjustmentsTotal = makeCreditAdjustmentsResult.size,

@@ -45,5 +45,4 @@ object ModelReaders {
   implicit val negativeInvoiceCSVReader: CSVReader[NegativeInvoiceFileLine] = unsafe.CSVReader[NegativeInvoiceFileLine]
 }
 
-final case class AdjustmentsReport(creditBalanceAdjustmentsTotal: Int,
-                                   negInvoicesWithHolidayCreditAutomated: Int)
+final case class AdjustmentsReport(creditBalanceAdjustmentsTotal: Int, negInvoicesWithHolidayCreditAutomated: Int)
