@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import com.gu.zuora.creditor.CreditTransferService._
 import com.gu.zuora.creditor.ModelReaders._
 import com.gu.zuora.creditor.Models.{ExportFile, NegativeInvoiceFileLine, NegativeInvoiceToTransfer}
-import com.gu.zuora.creditor.Types.CreditBalanceAdjustmentIDs
 import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment
 import org.scalatest.{FlatSpec, Matchers}
 
