@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 object Alarmer extends LazyLogging {
 
-  private val SNS = AmazonSNSClient.builder().build()
+  private lazy val SNS = AmazonSNSClient.builder().build()
   private val TopicArn = System.getenv("alarms_topic_arn")
   private val AdjustmentExecutedAlarmName = "zuora-creditor: number of Invoices credited > 0"
   private val runtimePublishSNS = (messageBody: String) => {
