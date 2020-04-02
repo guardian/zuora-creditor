@@ -16,12 +16,12 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
   behavior of "CreditTransferService"
 
-  "invoicesFromReport" should "take a valid CSV export file" in {
+  "processInvoicesFromReport" should "take a valid CSV export file" in {
     val expected = Set(
       NegativeInvoiceToTransfer("INV012345", -2.10, "A-S012345", "DO NOT USE MANUALLY: Holiday Credit - automated"),
       NegativeInvoiceToTransfer("INV012346", -2.11, "A-S012346", "Everyday")
     )
-    val invoicesActual = invoicesFromReport(ExportFile[NegativeInvoiceFileLine](
+    val invoicesActual = processInvoicesFromReport(ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.10
         |A-S012346,Everyday,INV012346,2017-01-01,-2.11
@@ -30,56 +30,56 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     invoicesActual shouldEqual expected
   }
 
-  "invoicesFromReport" should "gracefully fail with an invalid CSV export file" in {
+  "processInvoicesFromReport" should "gracefully fail with an invalid CSV export file" in {
 
     // invalid types in the CSV etc have silent failure
-    val invalidAmount = invoicesFromReport(ExportFile[NegativeInvoiceFileLine](
+    val invalidAmount = processInvoicesFromReport(ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,minustwopoundsten""".stripMargin
     ))
     assert(invalidAmount.isEmpty)
 
-    val missingData = invoicesFromReport(ExportFile[NegativeInvoiceFileLine](
+    val missingData = processInvoicesFromReport(ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance"""
     ))
     assert(missingData.isEmpty)
 
-    val emptyResponse = invoicesFromReport(ExportFile[NegativeInvoiceFileLine](""))
+    val emptyResponse = processInvoicesFromReport(ExportFile[NegativeInvoiceFileLine](""))
     assert(emptyResponse.isEmpty)
   }
 
-  "invoicesFromReport" should "round to the customer's benefit" in {
+  "processInvoicesFromReport" should "round to the customer's benefit" in {
     val reportIn = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |A-S012345,Everyday,INV012345,2017-01-01,-2.1101""".stripMargin)
 
-    val invoicesActual = invoicesFromReport(reportIn)
+    val invoicesActual = processInvoicesFromReport(reportIn)
 
     invoicesActual.size shouldEqual 1
     invoicesActual.head shouldEqual NegativeInvoiceToTransfer("INV012345", -2.12, "A-S012345", "Everyday")
     invoicesActual.head.transferrableBalance shouldEqual 2.12
   }
 
-  "invoicesFromReport" should "return empty set for bad data" in {
+  "processInvoicesFromReport" should "return empty set for bad data" in {
     val positiveAmountError = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |A-S012345,Everyday,INV012345,2017-01-01,2.10""".stripMargin)
 
-    invoicesFromReport(positiveAmountError) shouldEqual Set.empty
+    processInvoicesFromReport(positiveAmountError) shouldEqual Set.empty
 
     val missingInvoiceNumberError = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,,2017-01-01,-2.10""".stripMargin
     )
 
-    invoicesFromReport(missingInvoiceNumberError) shouldEqual Set.empty
+    processInvoicesFromReport(missingInvoiceNumberError) shouldEqual Set.empty
 
     val missingSubscriberIdError = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |,Everyday,INV012345,2017-01-01,-2.10""".stripMargin
     )
 
-    invoicesFromReport(missingSubscriberIdError) shouldEqual Set.empty
+    processInvoicesFromReport(missingSubscriberIdError) shouldEqual Set.empty
   }
 
   it should "createCreditBalanceAdjustments given to it" in {

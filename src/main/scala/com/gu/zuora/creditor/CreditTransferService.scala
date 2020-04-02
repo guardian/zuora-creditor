@@ -16,7 +16,7 @@ object CreditTransferService extends LazyLogging {
   // operations allow changes to up-to 50 objects at a time
   val maxNumberOfCreateObjects = 50
 
-  def invoicesFromReport(report: NegativeInvoiceReport): Set[NegativeInvoiceToTransfer] = {
+  def processInvoicesFromReport(report: NegativeInvoiceReport): Set[NegativeInvoiceToTransfer] = {
     report.reportLines.flatMap { reportLine =>
       val result = processNegativeInvoicesExportLine(reportLine)
       result.left.foreach(x => logger.warn(x))
@@ -54,7 +54,7 @@ class CreditTransferService(
       logger.info(s"csv export: $rawCSV")
       logger.info("==========================================")
     }
-    val invoicesWhichNeedCrediting = maybeExportCSV.map(x => invoicesFromReport(ExportFile(x))).getOrElse {
+    val invoicesWhichNeedCrediting = maybeExportCSV.map(x => processInvoicesFromReport(ExportFile(x))).getOrElse {
       logger.error("Unable to download export of negative invoices to credit")
       Set.empty[NegativeInvoiceToTransfer]
     }
@@ -87,9 +87,7 @@ class CreditTransferService(
         logger.info(s"Successfully created ${success.size} Credit Balance Adjustments with IDs: ${success.mkString(", ")}")
         success
       }
-    } else {
-      Seq.empty
-    }
+    } else Seq.empty
   }
 
   def createCreditBalanceAdjustments(adjustmentsToMake: Seq[CreateCreditBalanceAdjustment]): (List[ErrorMessage], CreditBalanceAdjustmentIDs) = {
