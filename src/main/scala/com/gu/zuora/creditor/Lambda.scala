@@ -51,13 +51,16 @@ class Lambda extends RequestHandler[KeyValue, KeyValue] with LazyLogging {
   }
 
   private def notifyIfCreditBalanceAdjustmentTriggered(message: String) = {
+    val enhancedMessage = s"zuora-creditor executed credit balance adjustments\n" +
+      s"$message\n" +
+      s"https://github.com/guardian/zuora-creditor"
     val topicArn = System.getenv("alarms_topic_arn")
     logger.info(s"sending notification about numberOfInvoicesCredited > 0 to [$topicArn]")
     val sns = AmazonSNSClient.builder().build()
     val snsPubReq = new PublishRequest()
       .withSubject("ALARM: [zuora-creditor] number of Invoices credited > 0")
       .withTargetArn(topicArn)
-      .withMessage(message)
+      .withMessage(enhancedMessage)
     sns.publish(snsPubReq)
   }
 
