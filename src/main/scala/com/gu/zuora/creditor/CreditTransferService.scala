@@ -66,7 +66,7 @@ class CreditTransferService(
     AdjustmentsReport(totalNumberOfCreditBalanceAdjustments, negativeInvoicesWithAutHolidayCredit)
   }
 
-  def makeCreditAdjustments(invoices: Set[NegativeInvoiceToTransfer]): CreditBalanceAdjustmentIDs = {
+  private def makeCreditAdjustments(invoices: Set[NegativeInvoiceToTransfer]): CreditBalanceAdjustmentIDs = {
     if (invoices.nonEmpty) {
       // Sort by invoice name to help with logging, we're going to credit them in order of their invoice number
       val invoicesToCredit = invoices.toSeq.sortBy(_.invoiceNumber)

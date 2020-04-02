@@ -192,32 +192,6 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     )
   }
 
-  it should "makeCreditAdjustments for no invoices" in {
-    val adjustCreditBalanceSuccessStub = getAdjustCreditBalanceTestFunc()
-    val service = new CreditTransferService(
-      adjustCreditBalanceSuccessStub,
-      downloadGeneratedExportFileStub
-    )
-    service.makeCreditAdjustments(Set.empty) shouldEqual Seq.empty
-  }
-
-  it should "makeCreditAdjustments" in {
-    val invoices = Set(
-      NegativeInvoiceToTransfer("INV012345", BigDecimal(-2.1).setScale(2), TestSubscriberId,
-        "DO NOT USE MANUALLY: Holiday Credit - automated"),
-      NegativeInvoiceToTransfer("INV012346", -2.111111, TestSubscriberId, "DO NOT USE MANUALLY: Holiday Credit - automated")
-    )
-
-    val service = new CreditTransferService(
-      getAdjustCreditBalanceTestFunc(),
-      downloadGeneratedExportFileStub
-    )
-    val expected: CreditBalanceAdjustmentIDs = Seq("INV012345", "INV012346")
-
-    val createdAdjustments = service.makeCreditAdjustments(invoices)
-    createdAdjustments shouldEqual expected
-  }
-
   private def createTestCreditBalanceAdjustmentCommand(invoiceId: String) = {
     CreateCreditBalanceAdjustment(
       Amount = 1.2,
