@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import com.gu.zuora.creditor.CreditTransferService._
 import com.gu.zuora.creditor.ModelReaders._
 import com.gu.zuora.creditor.Models.{ExportFile, NegativeInvoiceFileLine, NegativeInvoiceToTransfer}
-import com.gu.zuora.creditor.Types.{CreditBalanceAdjustmentIDs, RawCSVText, SerialisedJson}
+import com.gu.zuora.creditor.Types.CreditBalanceAdjustmentIDs
 import com.gu.zuora.creditor.holidaysuspension.CreateCreditBalanceAdjustment
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -13,27 +13,19 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
   private val TestSubscriberId = "A-S012345"
 
-  private val ZuoraRestClientStub = new ZuoraRestClient {
-    override def makeRestGET(path: String): SerialisedJson = ???
-
-    override def downloadFile(path: String): RawCSVText = ???
-
-    override def makeRestPOST(path: String)(commandJSON: SerialisedJson): SerialisedJson = ???
-  }
-
-  private val downloadGeneratedExportFileFunc = ZuoraExportDownloadService.apply(ZuoraRestClientStub) _
+  private val downloadGeneratedExportFileStub = (_: String) => None
 
   behavior of "CreditTransferService"
 
   it should "invoicesFromReport take a valid CSV export file" in {
     val expected = Set(
       NegativeInvoiceToTransfer("INV012345", -2.10, "A-S012345", "DO NOT USE MANUALLY: Holiday Credit - automated"),
-      NegativeInvoiceToTransfer("INV012346", -2.11, "A-S012346", "DO NOT USE MANUALLY: Holiday Credit - automated")
+      NegativeInvoiceToTransfer("INV012346", -2.11, "A-S012346", "Everyday")
     )
     val invoicesActual = invoicesFromReport(ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.10
-        |A-S012346,DO NOT USE MANUALLY: Holiday Credit - automated,INV012346,2017-01-01,-2.11
+        |A-S012346,Everyday,INV012346,2017-01-01,-2.11
       """.stripMargin.trim
     ))
     invoicesActual shouldEqual expected
@@ -60,7 +52,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
   it should "round to the customer's benefit in processNegativeInvoicesExportLine" in {
     val roundToCustomerBenefit = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
-        |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.1101""".stripMargin
+        |A-S012345,Everyday,INV012345,2017-01-01,-2.1101""".stripMargin
     ).reportLines.map(processNegativeInvoicesExportLine)
     val negativeInvoice = roundToCustomerBenefit.head.right.get
     negativeInvoice.invoiceBalance shouldEqual -2.12
@@ -71,7 +63,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
     val positiveAmountError = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
-        |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,2.10""".stripMargin
+        |A-S012345,Everyday,INV012345,2017-01-01,2.10""".stripMargin
     ).reportLines.map(processNegativeInvoicesExportLine)
     assert(positiveAmountError.head.isLeft)
     assert(positiveAmountError.head.left.get.startsWith("Ignored invoice INV012345"))
@@ -85,7 +77,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
     val missingSubscriberIdError = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
-        |,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.10""".stripMargin
+        |,Everyday,INV012345,2017-01-01,-2.10""".stripMargin
     ).reportLines.map(processNegativeInvoicesExportLine)
     assert(missingSubscriberIdError.head.isLeft)
     assert(missingSubscriberIdError.head.left.get.startsWith("Ignored invoice INV012345 dated 2017-01-01 with balance -2.10 for subscription:  as"))
@@ -101,7 +93,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     val numberOfCalls = new AtomicInteger
     val service = new CreditTransferService(
       getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls)),
-      downloadGeneratedExportFileFunc
+      downloadGeneratedExportFileStub
     )
     val (error, success) = service.createCreditBalanceAdjustments(adjustmentsToCreate)
     assert(numberOfCalls.intValue() == 1)
@@ -123,7 +115,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     val numberOfCalls = new AtomicInteger
     val service = new CreditTransferService(
       getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls)),
-      downloadGeneratedExportFileFunc,
+      downloadGeneratedExportFileStub,
       batchSize = 2
     )
     val (error, success) = service.createCreditBalanceAdjustments(adjustmentsToCreate)
@@ -145,7 +137,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
     val service = new CreditTransferService(
       adjustCreditBalanceSpy,
-      downloadGeneratedExportFileFunc
+      downloadGeneratedExportFileStub
     )
     val (error, success) = service.createCreditBalanceAdjustments(adjustmentsToCreate)
     numberOfCalls.intValue() shouldEqual 0
@@ -160,7 +152,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
     val service = new CreditTransferService(
       getAdjustCreditBalanceTestFunc(failICommandsAtIndexes = Set(0)),
-      downloadGeneratedExportFileFunc
+      downloadGeneratedExportFileStub
     )
     val (error, success) = service.createCreditBalanceAdjustments(adjustmentsToCreate)
     error.size shouldEqual 1
@@ -169,11 +161,42 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     )
   }
 
+  it should "processExportFile" in {
+    val adjustCreditBalanceSuccessStub = getAdjustCreditBalanceTestFunc()
+    val testExportId = "123"
+    val downloadGeneratedExportFileFunc = (exportId: String) => {
+      if (exportId == testExportId) {
+        Option(
+          """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
+            |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.10
+            |A-S012346,Everyday,INV012346,2017-01-01,-2.11
+      """.stripMargin.trim
+        )
+      } else None
+    }
+    val service = new CreditTransferService(
+      adjustCreditBalanceSuccessStub,
+      downloadGeneratedExportFileFunc
+    )
+
+    val adjustmentsReportActual = service.processExportFile(testExportId)
+
+    adjustmentsReportActual shouldEqual AdjustmentsReport(
+      creditBalanceAdjustmentsTotal = 2,
+      negInvoicesWithHolidayCreditAutomated = 1
+    )
+
+    service.processExportFile("not-exists") shouldEqual AdjustmentsReport(
+      creditBalanceAdjustmentsTotal = 0,
+      negInvoicesWithHolidayCreditAutomated = 0
+    )
+  }
+
   it should "makeCreditAdjustments for no invoices" in {
     val adjustCreditBalanceSuccessStub = getAdjustCreditBalanceTestFunc()
     val service = new CreditTransferService(
       adjustCreditBalanceSuccessStub,
-      downloadGeneratedExportFileFunc
+      downloadGeneratedExportFileStub
     )
     service.makeCreditAdjustments(Set.empty) shouldEqual Seq.empty
   }
@@ -187,7 +210,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
     val service = new CreditTransferService(
       getAdjustCreditBalanceTestFunc(),
-      downloadGeneratedExportFileFunc
+      downloadGeneratedExportFileStub
     )
     val expected: CreditBalanceAdjustmentIDs = Seq("INV012345", "INV012346")
 
@@ -206,7 +229,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
   }
 
   private def getAdjustCreditBalanceTestFunc(failICommandsAtIndexes: Set[Int] = Set.empty[Int],
-                                     callCounterOpt: Option[AtomicInteger] = None) = {
+                                             callCounterOpt: Option[AtomicInteger] = None) = {
     command: Seq[CreateCreditBalanceAdjustment] => {
       callCounterOpt.foreach(_.incrementAndGet())
       command.zipWithIndex.map { case (c, idx) =>
