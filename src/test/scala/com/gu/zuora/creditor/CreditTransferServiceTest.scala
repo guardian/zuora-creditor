@@ -27,13 +27,13 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
   it should "invoicesFromReport take a valid CSV export file" in {
     val expected = Set(
-      NegativeInvoiceToTransfer("INV012345", -2.10, "A-S012345"),
-      NegativeInvoiceToTransfer("INV012346", -2.11, "A-S012346")
+      NegativeInvoiceToTransfer("INV012345", -2.10, "A-S012345", "DO NOT USE MANUALLY: Holiday Credit - automated"),
+      NegativeInvoiceToTransfer("INV012346", -2.11, "A-S012346", "DO NOT USE MANUALLY: Holiday Credit - automated")
     )
     val invoicesActual = invoicesFromReport(ExportFile[NegativeInvoiceFileLine](
-      """subscriptionName,invoiceNumber,invoiceDate,invoiceBalance
-        |A-S012345,INV012345,2017-01-01,-2.10
-        |A-S012346,INV012346,2017-01-01,-2.11
+      """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
+        |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.10
+        |A-S012346,DO NOT USE MANUALLY: Holiday Credit - automated,INV012346,2017-01-01,-2.11
       """.stripMargin.trim
     ))
     invoicesActual shouldEqual expected
@@ -43,13 +43,13 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
     // invalid types in the CSV etc have silent failure
     val invalidAmount = invoicesFromReport(ExportFile[NegativeInvoiceFileLine](
-      """subscriptionName,invoiceNumber,invoiceDate,invoiceBalance
-        |A-S012345,INV012345,2017-01-01,minustwopoundsten""".stripMargin
+      """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
+        |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,minustwopoundsten""".stripMargin
     ))
     assert(invalidAmount.isEmpty)
 
     val missingData = invoicesFromReport(ExportFile[NegativeInvoiceFileLine](
-      """subscriptionName,invoiceNumber,invoiceDate,invoiceBalance"""
+      """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance"""
     ))
     assert(missingData.isEmpty)
 
@@ -59,8 +59,8 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
   it should "round to the customer's benefit in processNegativeInvoicesExportLine" in {
     val roundToCustomerBenefit = ExportFile[NegativeInvoiceFileLine](
-      """subscriptionName,invoiceNumber,invoiceDate,invoiceBalance
-        |A-S012345,INV012345,2017-01-01,-2.1101""".stripMargin
+      """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
+        |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.1101""".stripMargin
     ).reportLines.map(processNegativeInvoicesExportLine)
     val negativeInvoice = roundToCustomerBenefit.head.right.get
     negativeInvoice.invoiceBalance shouldEqual -2.12
@@ -70,22 +70,22 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
   it should "return a left in processNegativeInvoicesExportLine for bad data" in {
 
     val positiveAmountError = ExportFile[NegativeInvoiceFileLine](
-      """subscriptionName,invoiceNumber,invoiceDate,invoiceBalance
-        |A-S012345,INV012345,2017-01-01,2.10""".stripMargin
+      """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
+        |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,2.10""".stripMargin
     ).reportLines.map(processNegativeInvoicesExportLine)
     assert(positiveAmountError.head.isLeft)
     assert(positiveAmountError.head.left.get.startsWith("Ignored invoice INV012345"))
 
     val missingInvoiceNumberError = ExportFile[NegativeInvoiceFileLine](
-      """subscriptionName,invoiceNumber,invoiceDate,invoiceBalance
-        |A-S012345,,2017-01-01,-2.10""".stripMargin
+      """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
+        |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,,2017-01-01,-2.10""".stripMargin
     ).reportLines.map(processNegativeInvoicesExportLine)
     assert(missingInvoiceNumberError.head.isLeft)
     assert(missingInvoiceNumberError.head.left.get.startsWith("Ignored invoice  dated 2017-01-01"))
 
     val missingSubscriberIdError = ExportFile[NegativeInvoiceFileLine](
-      """subscriptionName,invoiceNumber,invoiceDate,invoiceBalance
-        |,INV012345,2017-01-01,-2.10""".stripMargin
+      """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
+        |,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.10""".stripMargin
     ).reportLines.map(processNegativeInvoicesExportLine)
     assert(missingSubscriberIdError.head.isLeft)
     assert(missingSubscriberIdError.head.left.get.startsWith("Ignored invoice INV012345 dated 2017-01-01 with balance -2.10 for subscription:  as"))
@@ -180,8 +180,9 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
   it should "makeCreditAdjustments" in {
     val invoices = Set(
-      NegativeInvoiceToTransfer("INV012345", BigDecimal(-2.1).setScale(2), TestSubscriberId),
-      NegativeInvoiceToTransfer("INV012346", -2.111111, TestSubscriberId)
+      NegativeInvoiceToTransfer("INV012345", BigDecimal(-2.1).setScale(2), TestSubscriberId,
+        "DO NOT USE MANUALLY: Holiday Credit - automated"),
+      NegativeInvoiceToTransfer("INV012346", -2.111111, TestSubscriberId, "DO NOT USE MANUALLY: Holiday Credit - automated")
     )
 
     val service = new CreditTransferService(

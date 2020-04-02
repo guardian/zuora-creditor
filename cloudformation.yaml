@@ -22,13 +22,13 @@ Resources:
   CreditBalanceAdjustmentSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
-      DisplayName: !Sub 'alarm-for-whenever-credit-balance-adjustment-happened-${Stage}'
+      DisplayName: !Sub 'zuora-credit-balance-adjustment-alarms-${Stage}'
       Subscription:
         -
           Endpoint:
             Ref: AlarmEmail
           Protocol: email
-      TopicName: !Sub 'credit-balance-adjustment-happen-${Stage}'
+      TopicName: !Sub 'zuora-credit-balance-adjustment-alarms-${Stage}'
   ZuoraCreditorRole:
     Type: AWS::IAM::Role
     Properties:
@@ -61,6 +61,8 @@ Resources:
                 Action:
                   - kms:Decrypt
                 Resource: !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/ssm
+              - Effect: Allow
+                Action:
                   - SNS:Publish
                 Resource: !Ref CreditBalanceAdjustmentSNSTopic
   LambdaKMSKey:
@@ -134,7 +136,7 @@ Resources:
           App: zuora-creditor
           Stack: subscriptions
           Stage: !Ref Stage
-          alarms_topic_arn: !Sub arn:aws:sns:${AWS::Region}:${AWS::AccountId}:credit-balance-adjustment-happened-${Stage}
+          alarms_topic_arn: !Ref CreditBalanceAdjustmentSNSTopic
       KmsKeyArn: !GetAtt LambdaKMSKey.Arn
 
   ZuoraCreditorStepFunctionRole:

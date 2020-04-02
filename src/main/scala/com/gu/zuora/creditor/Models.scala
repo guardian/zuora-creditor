@@ -9,16 +9,22 @@ object Models {
 
   trait ExportFileLine
 
-  case class NegativeInvoiceFileLine(subscriptionName: String, invoiceNumber: String, invoiceDate: String, invoiceBalance: String) extends ExportFileLine
+  case class NegativeInvoiceFileLine(
+                                      subscriptionName: String,
+                                      ratePlanName: String,
+                                      invoiceNumber: String,
+                                      invoiceDate: String,
+                                      invoiceBalance: String
+                                    ) extends ExportFileLine
 
   case object NegativeInvoiceFileLine {
     val selectForZOQL: ZOQLQueryFragment =
-      "SELECT Subscription.Name, Invoice.InvoiceNumber, Invoice.InvoiceDate, Invoice.Balance " +
+      "SELECT Subscription.Name, RatePlan.Name, Invoice.InvoiceNumber, Invoice.InvoiceDate, Invoice.Balance " +
         "FROM InvoiceItem " +
         "WHERE Invoice.Balance < 0 and Invoice.Status = 'Posted' and Subscription.AutoRenew = 'true'"
   }
 
-  case class NegativeInvoiceToTransfer(invoiceNumber: String, invoiceBalance: BigDecimal, subscriberId: String) {
+  case class NegativeInvoiceToTransfer(invoiceNumber: String, invoiceBalance: BigDecimal, subscriberId: String, ratePlanName: String) {
     val transferrableBalance: BigDecimal = if (invoiceBalance < 0) invoiceBalance * -1 else BigDecimal(0)
   }
 
@@ -38,3 +44,5 @@ object Models {
 object ModelReaders {
   implicit val negativeInvoiceCSVReader: CSVReader[NegativeInvoiceFileLine] = unsafe.CSVReader[NegativeInvoiceFileLine]
 }
+
+final case class AdjustmentsReport(creditBalanceAdjustmentsTotal: Int, negInvoicesWithHolidayCreditAutomated: Int)

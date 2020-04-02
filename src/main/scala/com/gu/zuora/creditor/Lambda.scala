@@ -38,29 +38,17 @@ class Lambda extends RequestHandler[KeyValue, KeyValue] with LazyLogging {
         downloadGeneratedExportFile = ZuoraExportDownloadService.apply(zuoraRestClient)
       )
       val exportId = event.get("creditInvoicesFromExport")
-      val adjustmentsCreated = creditTransferService.processExportFile(exportId)
+      val adjustmentsReport = creditTransferService.processExportFile(exportId)
+      val adjustmentsCreated = adjustmentsReport.creditBalanceAdjustmentsTotal
       val result = Map("numberOfInvoicesCredited" -> adjustmentsCreated.toString).asJava
-      val message = s"numberOfInvoicesCredited = $adjustmentsCreated"
-      if (adjustmentsCreated > 0) notifyIfCreditBalanceAdjustmentTriggered(message)
-      logger.info(message)
+      Alarmer.notifyIfAdjustmentTriggered(adjustmentsReport)
+      logger.info(s"numberOfInvoicesCredited = $adjustmentsCreated")
       result
     } else {
       logger.error(s"Lambda called with incorrect input data: $event")
       Map("nothingToDo" -> true.toString).asJava
     }
   }
-
-  private def notifyIfCreditBalanceAdjustmentTriggered(message: String) = {
-    val topicArn = System.getenv("alarms_topic_arn")
-    logger.info(s"sending notification about numberOfInvoicesCredited > 0 to [$topicArn]")
-    val sns = AmazonSNSClient.builder().build()
-    val snsPubReq = new PublishRequest()
-      .withSubject("ALARM: numberOfInvoicesCredited > 0")
-      .withTargetArn(topicArn)
-      .withMessage(message)
-    sns.publish(snsPubReq)
-  }
-
 }
 
 

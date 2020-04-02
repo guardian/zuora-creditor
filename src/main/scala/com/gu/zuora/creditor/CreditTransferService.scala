@@ -31,7 +31,7 @@ object CreditTransferService extends LazyLogging {
     val subscriptionNameIsValid = reportLine.subscriptionName.nonEmpty
 
     if (invoiceBalance.exists(_ < 0) && invoiceNumberIsValid && subscriptionNameIsValid) {
-      Right(NegativeInvoiceToTransfer(reportLine.invoiceNumber, invoiceBalance.get, reportLine.subscriptionName))
+      Right(NegativeInvoiceToTransfer(reportLine.invoiceNumber, invoiceBalance.get, reportLine.subscriptionName, reportLine.ratePlanName))
     } else {
       Left(s"Ignored invoice ${reportLine.invoiceNumber} dated ${reportLine.invoiceDate} with balance ${reportLine.invoiceBalance} for subscription: " +
         s"${reportLine.subscriptionName} as its balance is not negative or some other piece of information is missing")
@@ -47,8 +47,13 @@ class CreditTransferService(
   import CreditTransferService._
   import ModelReaders._
 
-  def processExportFile(exportId: ExportId): Int = {
+  def processExportFile(exportId: ExportId): AdjustmentsReport = {
     val maybeExportCSV = downloadGeneratedExportFile(exportId)
+    maybeExportCSV.foreach{ rawCSV =>
+      logger.info("==========================================")
+      logger.info(s"csv export: $rawCSV")
+      logger.info("==========================================")
+    }
     val invoicesWhichNeedCrediting = maybeExportCSV.map(x => invoicesFromReport(ExportFile(x))).getOrElse {
       logger.error("Unable to download export of negative invoices to credit")
       Set.empty[NegativeInvoiceToTransfer]
@@ -56,7 +61,9 @@ class CreditTransferService(
     if (invoicesWhichNeedCrediting.isEmpty) {
       logger.warn("No negative invoices reqire crediting today")
     }
-    makeCreditAdjustments(invoicesWhichNeedCrediting).size
+    val negativeInvoicesWithAutHolidayCredit = invoicesWhichNeedCrediting.count(_.ratePlanName.toLowerCase.contains("automated"))
+    val totalNumberOfCreditBalanceAdjustments = makeCreditAdjustments(invoicesWhichNeedCrediting).size
+    AdjustmentsReport(totalNumberOfCreditBalanceAdjustments, negativeInvoicesWithAutHolidayCredit)
   }
 
   def makeCreditAdjustments(invoices: Set[NegativeInvoiceToTransfer]): CreditBalanceAdjustmentIDs = {
@@ -71,15 +78,15 @@ class CreditTransferService(
         s"${invoices.map(_.invoiceNumber).mkString(", ")}")
 
       val (errors, success) = createCreditBalanceAdjustments(adjustmentsToMake)
-
-      logger.info(s"Successfully created ${success.size} Credit Balance Adjustments with IDs: ${success.mkString(", ")}")
-
       if (errors.nonEmpty) {
         val errorMsg = s"${errors.size} Errors creating Credit Balance Adjustment: ${errors.mkString(", ")}"
         logger.error(s"${errors.size} Errors creating Credit Balance Adjustment: ${errors.mkString(", ")}")
         // propagate error to AWS lambda metrics
         throw new IllegalStateException(errorMsg)
-      } else success
+      } else {
+        logger.info(s"Successfully created ${success.size} Credit Balance Adjustments with IDs: ${success.mkString(", ")}")
+        success
+      }
     } else {
       Seq.empty
     }
