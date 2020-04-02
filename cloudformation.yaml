@@ -22,7 +22,7 @@ Resources:
   CreditBalanceAdjustmentSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
-      DisplayName: !Sub 'alarm-for-whenever-credit-balance-adjustment-happened-${Stage}'
+      DisplayName: !Sub 'zuora-creditor-credit-balance-adjustment-${Stage}'
       Subscription:
         -
           Endpoint:
