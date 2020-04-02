@@ -16,7 +16,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
 
   behavior of "CreditTransferService"
 
-  it should "invoicesFromReport take a valid CSV export file" in {
+  "invoicesFromReport" should "take a valid CSV export file" in {
     val expected = Set(
       NegativeInvoiceToTransfer("INV012345", -2.10, "A-S012345", "DO NOT USE MANUALLY: Holiday Credit - automated"),
       NegativeInvoiceToTransfer("INV012346", -2.11, "A-S012346", "Everyday")
@@ -30,7 +30,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     invoicesActual shouldEqual expected
   }
 
-  it should "invoicesFromReport gracefully fail with an invalid CSV export file" in {
+  "invoicesFromReport" should "gracefully fail with an invalid CSV export file" in {
 
     // invalid types in the CSV etc have silent failure
     val invalidAmount = invoicesFromReport(ExportFile[NegativeInvoiceFileLine](
@@ -48,38 +48,38 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     assert(emptyResponse.isEmpty)
   }
 
-  it should "round to the customer's benefit in processNegativeInvoicesExportLine" in {
-    val roundToCustomerBenefit = ExportFile[NegativeInvoiceFileLine](
+  "invoicesFromReport" should "round to the customer's benefit" in {
+    val reportIn = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
-        |A-S012345,Everyday,INV012345,2017-01-01,-2.1101""".stripMargin
-    ).reportLines.map(processNegativeInvoicesExportLine)
-    val negativeInvoice = roundToCustomerBenefit.head.right.get
-    negativeInvoice.invoiceBalance shouldEqual -2.12
-    negativeInvoice.transferrableBalance shouldEqual 2.12
+        |A-S012345,Everyday,INV012345,2017-01-01,-2.1101""".stripMargin)
+
+    val invoicesActual = invoicesFromReport(reportIn)
+
+    invoicesActual.size shouldEqual 1
+    invoicesActual.head shouldEqual NegativeInvoiceToTransfer("INV012345", -2.12, "A-S012345", "Everyday")
+    invoicesActual.head.transferrableBalance shouldEqual 2.12
   }
 
-  it should "return a left in processNegativeInvoicesExportLine for bad data" in {
-
+  "invoicesFromReport" should "return empty set for bad data" in {
     val positiveAmountError = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
-        |A-S012345,Everyday,INV012345,2017-01-01,2.10""".stripMargin
-    ).reportLines.map(processNegativeInvoicesExportLine)
-    assert(positiveAmountError.head.isLeft)
-    assert(positiveAmountError.head.left.get.startsWith("Ignored invoice INV012345"))
+        |A-S012345,Everyday,INV012345,2017-01-01,2.10""".stripMargin)
+
+    invoicesFromReport(positiveAmountError) shouldEqual Set.empty
 
     val missingInvoiceNumberError = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,,2017-01-01,-2.10""".stripMargin
-    ).reportLines.map(processNegativeInvoicesExportLine)
-    assert(missingInvoiceNumberError.head.isLeft)
-    assert(missingInvoiceNumberError.head.left.get.startsWith("Ignored invoice  dated 2017-01-01"))
+    )
+
+    invoicesFromReport(missingInvoiceNumberError) shouldEqual Set.empty
 
     val missingSubscriberIdError = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |,Everyday,INV012345,2017-01-01,-2.10""".stripMargin
-    ).reportLines.map(processNegativeInvoicesExportLine)
-    assert(missingSubscriberIdError.head.isLeft)
-    assert(missingSubscriberIdError.head.left.get.startsWith("Ignored invoice INV012345 dated 2017-01-01 with balance -2.10 for subscription:  as"))
+    )
+
+    invoicesFromReport(missingSubscriberIdError) shouldEqual Set.empty
   }
 
   it should "createCreditBalanceAdjustments given to it" in {
@@ -160,7 +160,8 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     )
   }
 
-  it should "processExportFile" in {
+  "processExportFile" should "process exportId into AdjustmentsReport that will contain details about credit transfer" +
+    " adjustments execution" in {
     val adjustCreditBalanceSuccessStub = getAdjustCreditBalanceTestFunc()
     val testExportId = "123"
     val downloadGeneratedExportFileFunc = (exportId: String) => {

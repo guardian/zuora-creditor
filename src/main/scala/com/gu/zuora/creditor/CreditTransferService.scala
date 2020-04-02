@@ -24,7 +24,7 @@ object CreditTransferService extends LazyLogging {
     }.toSet
   }
 
-  def processNegativeInvoicesExportLine(reportLine: NegativeInvoiceFileLine): Either[ErrorMessage, NegativeInvoiceToTransfer] = {
+  private def processNegativeInvoicesExportLine(reportLine: NegativeInvoiceFileLine): Either[ErrorMessage, NegativeInvoiceToTransfer] = {
     // Not HALF_EVEN rounding - we always round to the customer's benefit using UP
     val invoiceBalance = Try(BigDecimal.apply(reportLine.invoiceBalance).setScale(2, UP)).toOption
     val invoiceNumberIsValid = reportLine.invoiceNumber.nonEmpty
