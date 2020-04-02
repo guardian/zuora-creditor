@@ -10,13 +10,9 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class CreditTransferServiceTest extends FlatSpec with Matchers {
 
-  private val TestSubscriberId = "A-S012345"
+  behavior of "processInvoicesFromReport"
 
-  private val downloadGeneratedExportFileStub = (_: String) => None
-
-  behavior of "CreditTransferService"
-
-  "processInvoicesFromReport" should "take a valid CSV export file" in {
+  it should "take a valid CSV export file" in {
     val expected = Set(
       NegativeInvoiceToTransfer("INV012345", -2.10, "A-S012345", "DO NOT USE MANUALLY: Holiday Credit - automated"),
       NegativeInvoiceToTransfer("INV012346", -2.11, "A-S012346", "Everyday")
@@ -30,7 +26,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     invoicesActual shouldEqual expected
   }
 
-  "processInvoicesFromReport" should "gracefully fail with an invalid CSV export file" in {
+  it should "gracefully fail with an invalid CSV export file" in {
 
     // invalid types in the CSV etc have silent failure
     val invalidAmount = processInvoicesFromReport(ExportFile[NegativeInvoiceFileLine](
@@ -48,7 +44,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     assert(emptyResponse.isEmpty)
   }
 
-  "processInvoicesFromReport" should "round to the customer's benefit" in {
+  it should "round to the customer's benefit" in {
     val reportIn = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |A-S012345,Everyday,INV012345,2017-01-01,-2.1101""".stripMargin)
@@ -60,7 +56,7 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     invoicesActual.head.transferrableBalance shouldEqual 2.12
   }
 
-  "processInvoicesFromReport" should "return empty set for bad data" in {
+  it should "return empty set for bad data" in {
     val positiveAmountError = ExportFile[NegativeInvoiceFileLine](
       """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
         |A-S012345,Everyday,INV012345,2017-01-01,2.10""".stripMargin)
@@ -82,125 +78,97 @@ class CreditTransferServiceTest extends FlatSpec with Matchers {
     processInvoicesFromReport(missingSubscriberIdError) shouldEqual Set.empty
   }
 
-  it should "createCreditBalanceAdjustments given to it" in {
+  behavior of "processExportFile"
 
-    val adjustmentsToCreate = Seq(
-      createTestCreditBalanceAdjustmentCommand(s"Refunding-$TestSubscriberId-A"),
-      createTestCreditBalanceAdjustmentCommand(s"Refunding-$TestSubscriberId-B")
-    )
+  private val IgnoredValue = "123"
 
-    val numberOfCalls = new AtomicInteger
-    val service = new CreditTransferService(
-      getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls)),
-      downloadGeneratedExportFileStub
+  private val downloadEmptyReport = (_: String) => None
+
+  private val downloadReportWith3Invoices = (_: String) => {
+    Option(
+      """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
+        |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.10
+        |A-S012346,Everyday,INV012346,2017-01-01,-2.11
+        |A-S012355,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-02-01,-3.10
+      """.stripMargin.trim
     )
-    val (error, success) = service.createCreditBalanceAdjustments(adjustmentsToCreate)
-    assert(numberOfCalls.intValue() == 1)
-    assert(error.isEmpty)
-    assert(success == Seq(
-      s"Refunding-$TestSubscriberId-A",
-      s"Refunding-$TestSubscriberId-B"
-    ))
   }
 
+  private val downloadReportWith2Invoices = (_: String) => {
+    Option(
+      """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
+        |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.10
+        |A-S012346,Everyday,INV012346,2017-01-01,-2.11
+      """.stripMargin.trim
+    )
+  }
+
+
   it should "process createCreditBalanceAdjustments in batches of 2" in {
-
-    val adjustmentsToCreate = Seq(
-      createTestCreditBalanceAdjustmentCommand(s"Refunding-$TestSubscriberId-A"),
-      createTestCreditBalanceAdjustmentCommand(s"Refunding-$TestSubscriberId-B"),
-      createTestCreditBalanceAdjustmentCommand(s"Refunding-$TestSubscriberId-C")
-    )
-
     val numberOfCalls = new AtomicInteger
-    val service = new CreditTransferService(
-      getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls)),
-      downloadGeneratedExportFileStub,
-      batchSize = 2
-    )
-    val (error, success) = service.createCreditBalanceAdjustments(adjustmentsToCreate)
 
-    numberOfCalls.intValue() shouldEqual 2 // also tests eager evaluation
-    assert(error.isEmpty)
-    success shouldEqual Seq(
-      s"Refunding-$TestSubscriberId-A",
-      s"Refunding-$TestSubscriberId-B",
-      s"Refunding-$TestSubscriberId-C"
+    val adjustmentsReportActual = new CreditTransferService(
+      getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls)),
+      downloadReportWith3Invoices,
+      batchSize = 2
+    ).processExportFile(IgnoredValue)
+
+    adjustmentsReportActual shouldEqual AdjustmentsReport(
+      creditBalanceAdjustmentsTotal = 3,
+      negInvoicesWithHolidayCreditAutomated = 2
     )
+    numberOfCalls.intValue() shouldEqual 2
   }
 
   it should "not attempt to create any createCreditBalanceAdjustments in Zuora when given no adjustments to create" in {
-    val adjustmentsToCreate = Seq.empty[CreateCreditBalanceAdjustment]
+    val numberOfCalls = new AtomicInteger
+    val service = new CreditTransferService(
+      getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls)),
+      downloadEmptyReport
+    )
+    val adjustmentsReportActual = service.processExportFile("not-exists")
+    adjustmentsReportActual shouldEqual AdjustmentsReport(
+      creditBalanceAdjustmentsTotal = 0,
+      negInvoicesWithHolidayCreditAutomated = 0
+    )
+    numberOfCalls.intValue() shouldEqual 0
+  }
+
+  // throw IllegalStateException if CreditBalanceAdjustment call to ZUORA failed
+  an[IllegalStateException] should be thrownBy {
+    new CreditTransferService(
+      getAdjustCreditBalanceTestFunc(failICommandsAtIndexes = Set(0)),
+      downloadReportWith2Invoices
+    ).processExportFile(IgnoredValue)
+  }
+
+  it should "process downloaded report into AdjustmentsReport that will contain details about credit transfer" +
+    " adjustments execution in 1 batch" in {
 
     val numberOfCalls = new AtomicInteger
-    val adjustCreditBalanceSpy = getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls))
-
-    val service = new CreditTransferService(
-      adjustCreditBalanceSpy,
-      downloadGeneratedExportFileStub
-    )
-    val (error, success) = service.createCreditBalanceAdjustments(adjustmentsToCreate)
-    numberOfCalls.intValue() shouldEqual 0
-    assert(error.isEmpty && success.isEmpty)
-  }
-
-  it should "handle response failures for some createCreditBalanceAdjustments" in {
-    val adjustmentsToCreate = Seq(
-      createTestCreditBalanceAdjustmentCommand(s"Refunding-$TestSubscriberId-A"),
-      createTestCreditBalanceAdjustmentCommand(s"Refunding-$TestSubscriberId-B")
-    )
-
-    val service = new CreditTransferService(
-      getAdjustCreditBalanceTestFunc(failICommandsAtIndexes = Set(0)),
-      downloadGeneratedExportFileStub
-    )
-    val (error, success) = service.createCreditBalanceAdjustments(adjustmentsToCreate)
-    error.size shouldEqual 1
-    success shouldEqual Seq(
-      s"Refunding-$TestSubscriberId-B"
-    )
-  }
-
-  "processExportFile" should "process exportId into AdjustmentsReport that will contain details about credit transfer" +
-    " adjustments execution" in {
-    val adjustCreditBalanceSuccessStub = getAdjustCreditBalanceTestFunc()
-    val testExportId = "123"
-    val downloadGeneratedExportFileFunc = (exportId: String) => {
-      if (exportId == testExportId) {
-        Option(
-          """subscriptionName,ratePlanName,invoiceNumber,invoiceDate,invoiceBalance
-            |A-S012345,DO NOT USE MANUALLY: Holiday Credit - automated,INV012345,2017-01-01,-2.10
-            |A-S012346,Everyday,INV012346,2017-01-01,-2.11
-      """.stripMargin.trim
-        )
-      } else None
-    }
-    val service = new CreditTransferService(
-      adjustCreditBalanceSuccessStub,
-      downloadGeneratedExportFileFunc
-    )
-
-    val adjustmentsReportActual = service.processExportFile(testExportId)
+    val adjustmentsReportActual = new CreditTransferService(
+      getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls)),
+      downloadReportWith2Invoices
+    ).processExportFile(IgnoredValue)
 
     adjustmentsReportActual shouldEqual AdjustmentsReport(
       creditBalanceAdjustmentsTotal = 2,
       negInvoicesWithHolidayCreditAutomated = 1
     )
+    numberOfCalls.intValue() shouldEqual 1
 
-    service.processExportFile("not-exists") shouldEqual AdjustmentsReport(
+    numberOfCalls.decrementAndGet()
+
+    new CreditTransferService(
+      getAdjustCreditBalanceTestFunc(callCounterOpt = Some(numberOfCalls)),
+      downloadEmptyReport
+    ).processExportFile("not-exists") shouldEqual AdjustmentsReport(
       creditBalanceAdjustmentsTotal = 0,
       negInvoicesWithHolidayCreditAutomated = 0
     )
+    numberOfCalls.intValue() shouldEqual 0
   }
 
-  private def createTestCreditBalanceAdjustmentCommand(invoiceId: String) = {
-    CreateCreditBalanceAdjustment(
-      Amount = 1.2,
-      Comment = "unit test",
-      ReasonCode = "Holiday Suspension Credit",
-      SourceTransactionNumber = invoiceId,
-      Type = "Increase"
-    )
-  }
 
   private def getAdjustCreditBalanceTestFunc(failICommandsAtIndexes: Set[Int] = Set.empty[Int],
                                              callCounterOpt: Option[AtomicInteger] = None) = {

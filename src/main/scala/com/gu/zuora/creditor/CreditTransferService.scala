@@ -49,7 +49,7 @@ class CreditTransferService(
 
   def processExportFile(exportId: ExportId): AdjustmentsReport = {
     val maybeExportCSV = downloadGeneratedExportFile(exportId)
-    maybeExportCSV.foreach{ rawCSV =>
+    maybeExportCSV.foreach { rawCSV =>
       logger.info("==========================================")
       logger.info(s"csv export: $rawCSV")
       logger.info("==========================================")
@@ -59,14 +59,17 @@ class CreditTransferService(
       Set.empty[NegativeInvoiceToTransfer]
     }
     if (invoicesWhichNeedCrediting.isEmpty) {
-      logger.warn("No negative invoices reqire crediting today")
+      logger.warn("No negative invoices require crediting today")
     }
     val negativeInvoicesWithAutHolidayCredit = invoicesWhichNeedCrediting.count(_.ratePlanName.toLowerCase.contains("automated"))
-    val totalNumberOfCreditBalanceAdjustments = makeCreditAdjustments(invoicesWhichNeedCrediting).size
-    AdjustmentsReport(totalNumberOfCreditBalanceAdjustments, negativeInvoicesWithAutHolidayCredit)
+    val makeCreditAdjustmentsResult = makeCreditAdjustments(invoicesWhichNeedCrediting)
+    AdjustmentsReport(
+      creditBalanceAdjustmentsTotal = makeCreditAdjustmentsResult.size,
+      negativeInvoicesWithAutHolidayCredit
+    )
   }
 
-  private def makeCreditAdjustments(invoices: Set[NegativeInvoiceToTransfer]): CreditBalanceAdjustmentIDs = {
+  private def makeCreditAdjustments(invoices: Set[NegativeInvoiceToTransfer]) = {
     if (invoices.nonEmpty) {
       // Sort by invoice name to help with logging, we're going to credit them in order of their invoice number
       val invoicesToCredit = invoices.toSeq.sortBy(_.invoiceNumber)
@@ -90,7 +93,7 @@ class CreditTransferService(
     } else Seq.empty
   }
 
-  def createCreditBalanceAdjustments(adjustmentsToMake: Seq[CreateCreditBalanceAdjustment]): (List[ErrorMessage], CreditBalanceAdjustmentIDs) = {
+  private def createCreditBalanceAdjustments(adjustmentsToMake: Seq[CreateCreditBalanceAdjustment]): (List[ErrorMessage], CreditBalanceAdjustmentIDs) = {
     val batches = adjustmentsToMake.grouped(batchSize).toList
     logger.info(s"createCreditBalanceAdjustments batches: $batches")
     val result = batches.flatMap(adjustCreditBalance)
