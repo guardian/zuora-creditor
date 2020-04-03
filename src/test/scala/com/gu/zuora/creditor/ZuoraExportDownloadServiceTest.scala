@@ -7,8 +7,6 @@ class ZuoraExportDownloadServiceTest extends FlatSpec {
 
   val exportIdCompleted = "foo"
   val exportIdStillProcessing = "foo-processing"
-  val unknownExportId = "bar"
-  val invalidExportId = "baz"
   val fileId = "bim"
   val expectedCSV: RawCSVText =
     """lyric,lyric,lyric,lyric
