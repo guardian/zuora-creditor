@@ -111,6 +111,7 @@ Resources:
   ZuoraCreditorStepFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties:
+      StateMachineName: !Sub zuora-creditor-step-function-${Stage}
       RoleArn: !GetAtt ZuoraCreditorStepFunctionRole.Arn
       DefinitionString: !Sub |
         {
@@ -134,3 +135,13 @@ Resources:
             }
           }
         }
+
+  ZuoraCreditorStepFunctionRule:
+      Type: AWS::Events::Rule
+      Properties:
+        Name: !Sub zuora-creditor-step-function-rule-${Stage}
+        Description: Starts the Zuora Holiday Suspension Step function
+        ScheduleExpression: cron(0 1 * * ? *)
+        Targets:
+        - Id: ZuoraCreditorStepFunctionRule
+          Arn: !Ref ZuoraCreditorStepFunction
