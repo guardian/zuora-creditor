@@ -141,7 +141,8 @@ Resources:
       Properties:
         Name: !Sub zuora-creditor-step-function-rule-${Stage}
         Description: Starts the Zuora Holiday Suspension Step function
-        ScheduleExpression: cron(0 1 * * ? *)
+        ScheduleExpression: cron(5 9 * * ? *)
         Targets:
         - Id: ZuoraCreditorStepFunctionRule
           Arn: !Ref ZuoraCreditorStepFunction
+          RoleArn: !GetAtt ZuoraCreditorStepFunctionRole.Arn
