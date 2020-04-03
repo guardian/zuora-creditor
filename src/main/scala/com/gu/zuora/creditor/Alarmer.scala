@@ -10,6 +10,8 @@ object Alarmer extends LazyLogging {
   private lazy val SNS = AmazonSNSClient.builder().build()
   private val TopicArn = System.getenv("alarms_topic_arn")
 
+  private val Stage = System.getenv().getOrDefault("Stage", "DEV")
+
   val RuntimePublishSNS: (String, String) => String = (messageBody: String, alarmName: String) => {
     val msgID = SNS.publish(new PublishRequest()
       .withSubject(s"ALARM: $alarmName")
@@ -17,8 +19,8 @@ object Alarmer extends LazyLogging {
       .withMessage(messageBody)).getMessageId
     s"$alarmName Alarm message-id: $msgID"
   }
-  val AdjustmentExecutedAlarmName = "zuora-creditor: number of Invoices credited > 0"
-  val ReportDownloadFailureAlarmName = "zuora-creditor: Unable to download export of negative invoices to credit"
+  val AdjustmentExecutedAlarmName = s"zuora-creditor $Stage: number of Invoices credited > 0"
+  val ReportDownloadFailureAlarmName = s"zuora-creditor $Stage: Unable to download export of negative invoices to credit"
 
   def apply(publishToSNS: (String, String) => String): Alarmer = new Alarmer(publishToSNS)
 
