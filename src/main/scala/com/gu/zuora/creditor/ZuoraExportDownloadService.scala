@@ -17,17 +17,17 @@ object ZuoraExportDownloadService extends LazyLogging {
     def downloadExportFile(fileId: FileId) = zuoraRestClient.downloadFile(s"file/$fileId")
 
     val exportResponse = getZuoraExport(exportId)
+    logger.info(s"ZUORA Export response: $exportResponse")
     val reportStatus = extractReportStatus(exportResponse)
     if (reportStatus != "Completed") {
       val errorMessage =
-        s"""attempting to download report which status is '$reportStatus',
+      s"""attempting to download report which status is '$reportStatus',
            |"Consider increasing wait time between the steps in [ZuoraCreditorStepFunction]""".stripMargin
       val alarmMessageId = alarmer.notifyAboutReportDownloadFailure(errorMessage)
       throw new IllegalStateException(
-        s"""$errorMessage
+      s"""$errorMessage
            |alarm was sent to SNS, messageId:$alarmMessageId""".stripMargin)
     }
-    logger.info(s"ZUORA Export response: $exportResponse")
     val fileId = extractFileId(exportResponse)
     val rawCSV = downloadExportFile(fileId)
     // TODO remove dependency from having a  Option[RawCSVText] type here
