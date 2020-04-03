@@ -136,6 +136,27 @@ Resources:
           }
         }
 
+  RuleRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: !Sub zuora-creditor-step-function-rule-role-${Stage}
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                 - events.amazonaws.com
+              Action:
+                - sts:AssumeRole
+        Policies:
+          - PolicyName: ZuoraCreditorStepFunctionRulePolicy
+            PolicyDocument:
+              Statement:
+                - Effect: Allow
+                  Resource: !Ref ZuoraCreditorStepFunction
+                  Action:
+                    - states:StartExecution
+
   ZuoraCreditorStepFunctionRule:
       Type: AWS::Events::Rule
       Properties:
@@ -145,4 +166,5 @@ Resources:
         Targets:
         - Id: ZuoraCreditorStepFunctionRule
           Arn: !Ref ZuoraCreditorStepFunction
-          RoleArn: !GetAtt ZuoraCreditorStepFunctionRole.Arn
+          Input: '{"scheduleReport":"GetNegativeHolidaySuspensionInvoices"}'
+          RoleArn: !GetAtt RuleRole.Arn
