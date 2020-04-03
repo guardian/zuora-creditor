@@ -18,9 +18,4 @@ The repository contains the implementation of a specific use case of this proces
 Run `sbt compile` to generate the SOAP client sources.
 Run `sbt assembly` to generate the Home Delivery Holiday Suspension AWS Lambda jar.
 
-# Credits
-
-This project generates the sources for a synchronous SOAP client API from the Zuora83.wsdl using [http://scalaxb.org/](scalaxb.org),  wraps a lightweight HTTP client called: [https://github.com/scalaj/scalaj-http](scalaj-http) and uses [PureCSV](https://github.com/melrief/PureCSV) for reading the Zuora Export file into a case class.
-
-
 
