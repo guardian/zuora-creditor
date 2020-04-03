@@ -30,7 +30,7 @@ object Alarmer extends LazyLogging {
            |
            |Alarm Details:
            |- Name: $AdjustmentExecutedAlarmName
-           |- Description: IMPACT: this alarm si to inform us if credit balance adjustments for automated Holiday Credit are happening
+           |- Description: IMPACT: this alarm is to inform us if credit balance adjustments for automated Holiday Credit are happening
            |For general advice, see https://docs.google.com/document/d/1_3El3cly9d7u_jPgTcRjLxmdG2e919zCLvmcFCLOYAk
            |
            |zuora-creditor repository: https://github.com/guardian/zuora-creditor
