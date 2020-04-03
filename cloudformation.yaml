@@ -65,58 +65,6 @@ Resources:
                 Action:
                   - SNS:Publish
                 Resource: !Ref CreditBalanceAdjustmentSNSTopic
-  LambdaKMSKey:
-    Type: AWS::KMS::Key
-    Properties:
-      Description: !Sub Used by the zuora-creditor-${Stage} lambda to encrypt and decrypt its environment variables
-      KeyPolicy:
-        Version: '2012-10-17'
-        Id: !Sub key-policy-zuora-creditor-${Stage}
-        Statement:
-        - Sid: Enable IAM User Permissions
-          Effect: Allow
-          Principal:
-            AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
-          Action: kms:*
-          Resource: "*"
-        - Sid: Allow access for Key Administrators
-          Effect: Allow
-          Principal:
-            AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
-          Action:
-          - kms:Create*
-          - kms:Describe*
-          - kms:Enable*
-          - kms:List*
-          - kms:Put*
-          - kms:Update*
-          - kms:Revoke*
-          - kms:Disable*
-          - kms:Get*
-          - kms:Delete*
-          - kms:ScheduleKeyDeletion
-          - kms:CancelKeyDeletion
-          Resource: "*"
-        - Sid: Allow use of the key
-          Effect: Allow
-          Principal:
-            AWS:
-              Fn::GetAtt:
-              - ZuoraCreditorRole
-              - Arn
-          Action:
-          - kms:Encrypt
-          - kms:Decrypt
-          - kms:ReEncrypt*
-          - kms:GenerateDataKey*
-          - kms:DescribeKey
-          Resource: "*"
-
-  LambdaKMSKeyAlias:
-    Type: AWS::KMS::Alias
-    Properties:
-      AliasName: !Sub alias/zuora-creditor-kms-${Stage}
-      TargetKeyId: !Ref LambdaKMSKey
 
   ZuoraCreditorLambda:
     Type: AWS::Lambda::Function
@@ -137,7 +85,6 @@ Resources:
           Stack: subscriptions
           Stage: !Ref Stage
           alarms_topic_arn: !Ref CreditBalanceAdjustmentSNSTopic
-      KmsKeyArn: !GetAtt LambdaKMSKey.Arn
 
   ZuoraCreditorStepFunctionRole:
     Type: AWS::IAM::Role
