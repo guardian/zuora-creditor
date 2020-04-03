@@ -5,7 +5,8 @@ import org.scalatest.FlatSpec
 
 class ZuoraExportDownloadServiceTest extends FlatSpec {
 
-  val exportId = "foo"
+  val exportIdCompleted = "foo"
+  val exportIdStillProcessing = "foo-processing"
   val unknownExportId = "bar"
   val invalidExportId = "baz"
   val fileId = "bim"
@@ -24,10 +25,10 @@ class ZuoraExportDownloadServiceTest extends FlatSpec {
     }
 
     override def makeRestGET(path: String): SerialisedJson = {
-      if (path == s"object/export/$exportId") {
-        s"""{"FileId":"$fileId"}"""
-      } else if (path == s"object/export/$unknownExportId") {
-        """{"FileId":"unknown"}"""
+      if (path == s"object/export/$exportIdCompleted") {
+        s"""{"FileId":"$fileId","Status":"Completed"}"""
+      } else if (path == s"object/export/$exportIdStillProcessing") {
+        s"""{"FileId":"$fileId","Status":"Processing"}"""
       } else {
         """{"invalid":"invalid"}"""
       }
@@ -36,20 +37,28 @@ class ZuoraExportDownloadServiceTest extends FlatSpec {
     override def makeRestPOST(path: String)(commandJSON: SerialisedJson): SerialisedJson = ???
   }
 
+  private val TestSnsMessageId = "id123"
+
+  private val alarmerStub = Alarmer(publishToSNS = (_: String, _: String) => TestSnsMessageId)
+
+  private val downloadGeneratedExportFile = ZuoraExportDownloadService.apply(zuoraRestClient, alarmerStub) _
+
   behavior of "ZuoraExportDownloaderTest"
 
   it should "downloadGeneratedExportFile" in {
-    val downloadGeneratedExportFile = ZuoraExportDownloadService.apply(zuoraRestClient) _
-    val csvFile = downloadGeneratedExportFile(exportId)
+    val csvFile = downloadGeneratedExportFile(exportIdCompleted)
     assert(csvFile.contains(expectedCSV))
-    val unknownCsvFile = downloadGeneratedExportFile(unknownExportId)
-    assert(unknownCsvFile.isEmpty)
-    val invalidCsvFile1 = downloadGeneratedExportFile(invalidExportId)
-    assert(invalidCsvFile1.isEmpty)
-    val invalidCsvFile2 = downloadGeneratedExportFile(null)
-    assert(invalidCsvFile2.isEmpty)
-    val invalidCsvFile3 = downloadGeneratedExportFile("")
-    assert(invalidCsvFile3.isEmpty)
+  }
+
+  it should "downloadGeneratedExportFile throws exception and sends alarm if status is not Completed" in {
+    val thrown = intercept[IllegalStateException] {
+      downloadGeneratedExportFile(exportIdStillProcessing)
+    }
+
+    assert(thrown.getMessage ==
+      s"""attempting to download report which status is 'Processing',
+         |"Consider increasing wait time between the steps in [ZuoraCreditorStepFunction]
+         |alarm was sent to SNS, messageId:$TestSnsMessageId""".stripMargin)
   }
 
 }

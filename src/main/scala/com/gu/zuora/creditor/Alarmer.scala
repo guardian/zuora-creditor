@@ -2,21 +2,31 @@ package com.gu.zuora.creditor
 
 import com.amazonaws.services.sns.AmazonSNSClient
 import com.amazonaws.services.sns.model.PublishRequest
+import com.gu.zuora.creditor.Alarmer.{AdjustmentExecutedAlarmName, ReportDownloadFailureAlarmName, TopicArn, logger}
 import com.typesafe.scalalogging.LazyLogging
 
 object Alarmer extends LazyLogging {
 
   private lazy val SNS = AmazonSNSClient.builder().build()
   private val TopicArn = System.getenv("alarms_topic_arn")
-  private val AdjustmentExecutedAlarmName = "zuora-creditor: number of Invoices credited > 0"
-  private val runtimePublishSNS = (messageBody: String) => {
-    SNS.publish(new PublishRequest()
-      .withSubject(s"ALARM: $AdjustmentExecutedAlarmName")
+
+  val RuntimePublishSNS: (String, String) => String = (messageBody: String, alarmName: String) => {
+    val msgID = SNS.publish(new PublishRequest()
+      .withSubject(s"ALARM: $alarmName")
       .withTargetArn(TopicArn)
       .withMessage(messageBody)).getMessageId
+    s"$alarmName Alarm message-id: $msgID"
   }
+  val AdjustmentExecutedAlarmName = "zuora-creditor: number of Invoices credited > 0"
+  val ReportDownloadFailureAlarmName = "zuora-creditor: Unable to download export of negative invoices to credit"
 
-  def notifyIfAdjustmentTriggered(adjustmentsReport: AdjustmentsReport, publishToSNS: String => String = runtimePublishSNS): String = {
+  def apply(publishToSNS: (String, String) => String): Alarmer = new Alarmer(publishToSNS)
+
+  def apply: Alarmer = new Alarmer(RuntimePublishSNS)
+}
+
+class Alarmer(publishToSNS: (String, String) => String) extends LazyLogging {
+  def notifyIfAdjustmentTriggered(adjustmentsReport: AdjustmentsReport): String = {
     if (adjustmentsReport.negInvoicesWithHolidayCreditAutomated > 0) {
 
       import adjustmentsReport._
@@ -37,8 +47,27 @@ object Alarmer extends LazyLogging {
            |""".stripMargin
 
       logger.info(s"sending notification about numberOfInvoicesCredited > 0 to [$TopicArn]")
-      publishToSNS(messageBody)
+      publishToSNS(messageBody, AdjustmentExecutedAlarmName)
     } else "not-published"
   }
 
+  def notifyAboutReportDownloadFailure(errorMessage: String): String = {
+    val messageBody =
+      s"""
+         |You are receiving this email because zuora-creditor was Unable to download export of negative invoices to credit
+         |
+         |Error message:
+         |$errorMessage
+         |
+         |Alarm Details:
+         |- Name: $ReportDownloadFailureAlarmName
+         |- Description: IMPACT: if this goes unaddressed ZuoraCreditorStepFunction executions are not useful
+         | and no credit balance adjustments for negative invoices will take place
+         |For general advice, see https://docs.google.com/document/d/1_3El3cly9d7u_jPgTcRjLxmdG2e919zCLvmcFCLOYAk
+         |
+         |zuora-creditor repository: https://github.com/guardian/zuora-creditor
+         |""".stripMargin
+
+    publishToSNS(messageBody, ReportDownloadFailureAlarmName)
+  }
 }

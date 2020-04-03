@@ -13,6 +13,8 @@ class Lambda extends RequestHandler[KeyValue, KeyValue] with LazyLogging {
 
   private val zuoraRestClient = ZuoraAPIClientFromParameterStore.zuoraRestClient
   private val zuoraGenerateExport = ZuoraExportGenerator.apply(zuoraRestClient) _
+  private val alarmer = Alarmer.apply
+  private val zuoraExportDownloadService = ZuoraExportDownloadService.apply(zuoraRestClient, alarmer) _
 
   val exportCommands = Map(
     "GetNegativeHolidaySuspensionInvoices" -> GetNegativeHolidaySuspensionInvoices
@@ -35,13 +37,13 @@ class Lambda extends RequestHandler[KeyValue, KeyValue] with LazyLogging {
 
       val creditTransferService = new CreditTransferService(
         adjustCreditBalance = ZuoraCreditBalanceAdjustment.apply(zuoraRestClient),
-        downloadGeneratedExportFile = ZuoraExportDownloadService.apply(zuoraRestClient)
+        downloadGeneratedExportFile = zuoraExportDownloadService
       )
       val exportId = event.get("creditInvoicesFromExport")
       val adjustmentsReport = creditTransferService.processExportFile(exportId)
       val adjustmentsCreated = adjustmentsReport.creditBalanceAdjustmentsTotal
       val result = Map("numberOfInvoicesCredited" -> adjustmentsCreated.toString).asJava
-      Alarmer.notifyIfAdjustmentTriggered(adjustmentsReport)
+      alarmer.notifyIfAdjustmentTriggered(adjustmentsReport)
       logger.info(s"numberOfInvoicesCredited = $adjustmentsCreated")
       result
     } else {

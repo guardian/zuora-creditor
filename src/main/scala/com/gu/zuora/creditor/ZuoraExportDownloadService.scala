@@ -4,28 +4,35 @@ import com.gu.zuora.creditor.Types.{ExportId, FileId, RawCSVText, SerialisedJson
 import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.json.Json.parse
 
-import scala.util.Try
-
 object ZuoraExportDownloadService extends LazyLogging {
 
-  def apply(zuoraRestClient: ZuoraRestClient)(exportId: ExportId): Option[RawCSVText] = {
+  def apply(zuoraRestClient: ZuoraRestClient, alarmer: Alarmer)(exportId: ExportId): Option[RawCSVText] = {
     def getZuoraExport(exportId: ExportId) = zuoraRestClient.makeRestGET(s"object/export/$exportId")
 
     def extractFileId(response: SerialisedJson) =
-      Try((parse(response) \ "FileId").asOpt[String]).toOption.flatten.filter(_.nonEmpty)
+      (parse(response) \ "FileId").as[String]
+
+    def extractReportStatus(response: SerialisedJson) = (parse(response) \ "Status").as[String]
 
     def downloadExportFile(fileId: FileId) = zuoraRestClient.downloadFile(s"file/$fileId")
 
-    Option(exportId).filter(_.nonEmpty).flatMap { validExportId =>
-      val exportResponse = getZuoraExport(validExportId)
-      logger.info(s"ZUORA Export status: $exportResponse")
-      val maybeFileId = extractFileId(exportResponse)
-      if (maybeFileId.isEmpty) {
-        if (exportResponse.contains("Authentication error")) throw new IllegalStateException("ZUORA Authentication error")
-        logger.error(s"No FileId found in Zuora Export: $validExportId. Zuora response: $exportResponse")
-      }
-      maybeFileId.map(downloadExportFile).filter(_.nonEmpty)
+    val exportResponse = getZuoraExport(exportId)
+    val reportStatus = extractReportStatus(exportResponse)
+    if (reportStatus != "Completed") {
+      val errorMessage =
+        s"""attempting to download report which status is '$reportStatus',
+           |"Consider increasing wait time between the steps in [ZuoraCreditorStepFunction]""".stripMargin
+      val alarmMessageId = alarmer.notifyAboutReportDownloadFailure(errorMessage)
+      throw new IllegalStateException(
+        s"""$errorMessage
+           |alarm was sent to SNS, messageId:$alarmMessageId""".stripMargin)
     }
+    logger.info(s"ZUORA Export response: $exportResponse")
+    val fileId = extractFileId(exportResponse)
+    val rawCSV = downloadExportFile(fileId)
+    // TODO remove dependency from having a  Option[RawCSVText] type here
+    // this can be RawCSVText only
+    Some(rawCSV)
   }
 
 
