@@ -55,8 +55,6 @@ initialize := {
   assert(sys.props("java.specification.version") == "1.8", "Java 8 is required for this project.")
 }
 
-resolvers += "Guardian Platform Bintray" at "https://dl.bintray.com/guardian/platforms"
-
 assemblyMergeStrategy in assembly := {
   case PathList("META-INF", xs@_*) => MergeStrategy.discard
   case x => MergeStrategy.first
