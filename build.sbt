@@ -48,7 +48,7 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
   "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
   "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
-  "org.scalatest" %% "scalatest" % "3.0.8" % Test
+  "org.scalatest" %% "scalatest" % "3.0.9" % Test
 )
 
 assemblyMergeStrategy in assembly := {
