@@ -32,7 +32,7 @@ riffRaffArtifactResources += (file("cloudformation.yaml"), "cfn/cfn.yaml")
 
 addCommandAlias("dist", ";riffRaffArtifact")
 
-val jacksonVersion = "2.10.3"
+val jacksonVersion = "2.10.5.1"
 
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-lambda-java-core" % "1.2.0",
