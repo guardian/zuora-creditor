@@ -40,7 +40,7 @@ libraryDependencies ++= Seq(
   "com.gu" %% "simple-configuration-ssm" % "1.5.7",
   "com.typesafe.play" %% "play-json" % "2.9.2",
   "ch.qos.logback" % "logback-classic" % "1.2.7",
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
   "org.scalaj" %% "scalaj-http" % "2.4.2",
   "io.kontainers" %% "purecsv" % "0.4.1",
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % jacksonVersion,
