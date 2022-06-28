@@ -11,11 +11,9 @@ The code is structured in a way that an implementing class only need to:
 - Configure how they want to generate a `CreditBalanceAdjustment` by extending the `CreateCreditBalanceAdjustmentCommand` trait which has a method which takes a single `NegativeInvoiceToTransfer` case class to start with.
 - Write your own main file or AWS Lambda function to orchestrate the stages of the process.
  
-The repository contains the implementation of a specific use case of this process, which targets negative holiday suspension invoices. It has a main method for local testing and an AWS Lambda incorporated into the build system for deploying to production. See the Home Delivery Suspension Scala trait overrides: [src/main/resources/scala/com/gu/zuora/creditor/holidaysuspension/...](https://github.com/guardian/zuora-creditor/tree/master/src/main/scala/com/gu/zuora/creditor/holidaysuspension).
+The repository contains the implementation of a specific use case of this process, which targets negative holiday suspension invoices. It has a main method for local testing and an AWS Lambda incorporated into the build system for deploying to production. See the Home Delivery Suspension Scala trait overrides: [src/main/resources/scala/com/gu/zuora/creditor/holidaysuspension/...](https://github.com/guardian/zuora-creditor/tree/main/src/main/scala/com/gu/zuora/creditor/holidaysuspension).
  
 # Usage
 
 Run `sbt compile` to generate the SOAP client sources.
 Run `sbt assembly` to generate the Home Delivery Holiday Suspension AWS Lambda jar.
-
-
