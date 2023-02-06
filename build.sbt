@@ -32,31 +32,24 @@ riffRaffArtifactResources += (file("cloudformation.yaml"), "cfn/cfn.yaml")
 
 addCommandAlias("dist", ";riffRaffArtifact")
 
-val jacksonVersion = "2.10.3"
-
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-lambda-java-core" % "1.2.0",
-  "com.amazonaws" % "aws-java-sdk-sns" % "1.12.99",
+  "com.amazonaws" % "aws-java-sdk-sns" % "1.12.399",
   "com.gu" %% "simple-configuration-ssm" % "1.5.7",
   "com.typesafe.play" %% "play-json" % "2.9.2",
-  "ch.qos.logback" % "logback-classic" % "1.2.7",
+  "ch.qos.logback" % "logback-classic" % "1.2.11",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "org.scalaj" %% "scalaj-http" % "2.4.2",
   "io.kontainers" %% "purecsv" % "0.4.1",
-  "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % jacksonVersion,
-  "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % jacksonVersion,
-  "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
-  "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
-  "com.fasterxml.jackson.core" % "jackson-core" % jacksonVersion,
+  "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % "2.14.2",
+  "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % "2.14.2",
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.14.0",
+  "com.fasterxml.jackson.core" % "jackson-annotations" % "2.13.5",
+  "com.fasterxml.jackson.core" % "jackson-core" % "2.13.5",
   "org.scalatest" %% "scalatest" % "3.0.8" % Test
 )
 
-assemblyMergeStrategy in assembly := {
-  case PathList("META-INF", "MANIFEST.MF")                  => MergeStrategy.discard
-  case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.discard
-  case PathList("codegen-resources", _)                     => MergeStrategy.discard
-  case PathList("module-info.class")                        => MergeStrategy.discard
-  case x =>
-    val oldStrategy = (assemblyMergeStrategy in assembly).value
-    oldStrategy(x)
+assembly / assemblyMergeStrategy := {
+  case PathList("META-INF", _*) => MergeStrategy.discard
+  case _                        => MergeStrategy.first
 }
