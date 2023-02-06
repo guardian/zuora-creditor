@@ -40,7 +40,7 @@ libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.11",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "org.scalaj" %% "scalaj-http" % "2.4.2",
-  "io.kontainers" %% "purecsv" % "0.4.1",
+  "io.kontainers" %% "purecsv" % "0.4.2",
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % "2.14.2",
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % "2.14.2",
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.14.0",
