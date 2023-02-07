@@ -45,7 +45,7 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % "2.14.2",
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.14.2",
   "com.fasterxml.jackson.core" % "jackson-annotations" % "2.14.2",
-  "com.fasterxml.jackson.core" % "jackson-core" % "2.13.5",
+  "com.fasterxml.jackson.core" % "jackson-core" % "2.14.2",
   "org.scalatest" %% "scalatest" % "3.0.8" % Test
 )
 
