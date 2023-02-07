@@ -2,7 +2,7 @@ name := "zuora-creditor"
 description := "This project contains a set of services and Lambda functions which find negative invoices and converts " +
   "them into a credit balance on the user's account, so that the amount is discounted off their next positive bill"
 version := "0.0.2"
-scalaVersion := "2.13.7"
+scalaVersion := "2.13.10"
 organization := "com.gu.zuora"
 
 scalacOptions ++= Seq(
@@ -10,7 +10,6 @@ scalacOptions ++= Seq(
   "-encoding",
   "UTF-8",
   "-feature",
-  "-target:jvm-1.8",
   "-language:existentials",
   "-language:higherKinds",
   "-language:implicitConversions",
