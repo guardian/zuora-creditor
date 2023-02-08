@@ -9,8 +9,8 @@ import com.typesafe.scalalogging.LazyLogging
 
 object Alarmer extends LazyLogging {
 
-  private def httpSyncClientBuilder() = ApacheHttpClient.builder()
-  private lazy val snsClient = SnsClient.builder.httpClientBuilder(httpSyncClientBuilder()).region(Region.EU_WEST_1).build()
+  private def httpClientBuilder() = ApacheHttpClient.builder()
+  private lazy val snsClient = SnsClient.builder.httpClientBuilder(httpClientBuilder()).region(Region.EU_WEST_1).build()
   private val topicArn = System.getenv("alarms_topic_arn")
 
   private val Stage = System.getenv().getOrDefault("Stage", "DEV")
