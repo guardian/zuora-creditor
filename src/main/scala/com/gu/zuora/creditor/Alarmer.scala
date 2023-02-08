@@ -1,30 +1,35 @@
 package com.gu.zuora.creditor
 
-import com.amazonaws.services.sns.AmazonSNSClient
-import com.amazonaws.services.sns.model.PublishRequest
-import com.gu.zuora.creditor.Alarmer.{AdjustmentExecutedAlarmName, ReportDownloadFailureAlarmName, TopicArn, logger}
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.http.apache.ApacheHttpClient
+import software.amazon.awssdk.services.sns.SnsClient
+import software.amazon.awssdk.services.sns.model.PublishRequest
+import com.gu.zuora.creditor.Alarmer.{adjustmentExecutedAlarmName, reportDownloadFailureAlarmName, topicArn, logger}
 import com.typesafe.scalalogging.LazyLogging
 
 object Alarmer extends LazyLogging {
 
-  private lazy val SNS = AmazonSNSClient.builder().build()
-  private val TopicArn = System.getenv("alarms_topic_arn")
+  private def httpSyncClientBuilder() = ApacheHttpClient.builder()
+  private lazy val snsClient = SnsClient.builder.httpClientBuilder(httpSyncClientBuilder()).region(Region.EU_WEST_1).build()
+  private val topicArn = System.getenv("alarms_topic_arn")
 
   private val Stage = System.getenv().getOrDefault("Stage", "DEV")
 
-  val RuntimePublishSNS: (String, String) => String = (messageBody: String, alarmName: String) => {
-    val msgID = SNS.publish(new PublishRequest()
-      .withSubject(s"ALARM: $alarmName")
-      .withTargetArn(TopicArn)
-      .withMessage(messageBody)).getMessageId
+  val runtimePublishSNS: (String, String) => String = (messageBody: String, alarmName: String) => {
+    val request = PublishRequest.builder()
+      .subject(s"ALARM: $alarmName")
+      .topicArn(topicArn)
+      .message(messageBody)
+      .build()
+    val msgID = snsClient.publish(request).messageId()
     s"$alarmName Alarm message-id: $msgID"
   }
-  val AdjustmentExecutedAlarmName = s"zuora-creditor $Stage: number of Invoices credited > 0"
-  val ReportDownloadFailureAlarmName = s"zuora-creditor $Stage: Unable to download export of negative invoices to credit"
+  val adjustmentExecutedAlarmName = s"zuora-creditor $Stage: number of Invoices credited > 0"
+  val reportDownloadFailureAlarmName = s"zuora-creditor $Stage: Unable to download export of negative invoices to credit"
 
   def apply(publishToSNS: (String, String) => String): Alarmer = new Alarmer(publishToSNS)
 
-  def apply: Alarmer = new Alarmer(RuntimePublishSNS)
+  def apply: Alarmer = new Alarmer(runtimePublishSNS)
 }
 
 class Alarmer(publishToSNS: (String, String) => String) extends LazyLogging {
@@ -41,15 +46,15 @@ class Alarmer(publishToSNS: (String, String) => String) extends LazyLogging {
            |Negative invoices With 'Holiday Credit - automated' Credit = $negInvoicesWithHolidayCreditAutomated
            |
            |Alarm Details:
-           |- Name: $AdjustmentExecutedAlarmName
+           |- Name: $adjustmentExecutedAlarmName
            |- Description: IMPACT: this alarm is to inform us if credit balance adjustments for automated Holiday Credit are happening
            |For general advice, see https://docs.google.com/document/d/1_3El3cly9d7u_jPgTcRjLxmdG2e919zCLvmcFCLOYAk
            |
            |zuora-creditor repository: https://github.com/guardian/zuora-creditor
            |""".stripMargin
 
-      logger.info(s"sending notification about numberOfInvoicesCredited > 0 to [$TopicArn]")
-      publishToSNS(messageBody, AdjustmentExecutedAlarmName)
+      logger.info(s"sending notification about numberOfInvoicesCredited > 0 to [$topicArn]")
+      publishToSNS(messageBody, adjustmentExecutedAlarmName)
     } else "not-published"
   }
 
@@ -62,7 +67,7 @@ class Alarmer(publishToSNS: (String, String) => String) extends LazyLogging {
          |$errorMessage
          |
          |Alarm Details:
-         |- Name: $ReportDownloadFailureAlarmName
+         |- Name: $reportDownloadFailureAlarmName
          |- Description: IMPACT: if this goes unaddressed ZuoraCreditorStepFunction executions are not useful
          | and no credit balance adjustments for negative invoices will take place
          |For general advice, see https://docs.google.com/document/d/1_3El3cly9d7u_jPgTcRjLxmdG2e919zCLvmcFCLOYAk
@@ -70,6 +75,6 @@ class Alarmer(publishToSNS: (String, String) => String) extends LazyLogging {
          |zuora-creditor repository: https://github.com/guardian/zuora-creditor
          |""".stripMargin
 
-    publishToSNS(messageBody, ReportDownloadFailureAlarmName)
+    publishToSNS(messageBody, reportDownloadFailureAlarmName)
   }
 }
