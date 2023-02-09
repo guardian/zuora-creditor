@@ -10,10 +10,11 @@ import com.typesafe.scalalogging.LazyLogging
 object Alarmer extends LazyLogging {
 
   private def httpClientBuilder() = ApacheHttpClient.builder()
+
   private lazy val snsClient = SnsClient.builder.httpClientBuilder(httpClientBuilder()).region(Region.EU_WEST_1).build()
   private val topicArn = System.getenv("alarms_topic_arn")
 
-  private val Stage = System.getenv().getOrDefault("Stage", "DEV")
+  private val stage = System.getenv().getOrDefault("Stage", "DEV")
 
   val runtimePublishSNS: (String, String) => String = (messageBody: String, alarmName: String) => {
     val request = PublishRequest.builder()
@@ -24,8 +25,8 @@ object Alarmer extends LazyLogging {
     val msgID = snsClient.publish(request).messageId()
     s"$alarmName Alarm message-id: $msgID"
   }
-  val adjustmentExecutedAlarmName = s"zuora-creditor $Stage: number of Invoices credited > 0"
-  val reportDownloadFailureAlarmName = s"zuora-creditor $Stage: Unable to download export of negative invoices to credit"
+  val adjustmentExecutedAlarmName = s"zuora-creditor $stage: number of Invoices credited > 0"
+  val reportDownloadFailureAlarmName = s"zuora-creditor $stage: Unable to download export of negative invoices to credit"
 
   def apply(publishToSNS: (String, String) => String): Alarmer = new Alarmer(publishToSNS)
 
