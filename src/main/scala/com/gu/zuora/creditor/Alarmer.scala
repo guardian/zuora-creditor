@@ -1,22 +1,28 @@
 package com.gu.zuora.creditor
 
-import com.amazonaws.services.sns.AmazonSNSClient
-import com.amazonaws.services.sns.model.PublishRequest
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.http.apache.ApacheHttpClient
+import software.amazon.awssdk.services.sns.SnsClient
+import software.amazon.awssdk.services.sns.model.PublishRequest
 import com.gu.zuora.creditor.Alarmer.{adjustmentExecutedAlarmName, reportDownloadFailureAlarmName, topicArn, logger}
 import com.typesafe.scalalogging.LazyLogging
 
 object Alarmer extends LazyLogging {
 
-  private lazy val snsClient = AmazonSNSClient.builder().build()
+  private def httpClientBuilder() = ApacheHttpClient.builder()
+
+  private lazy val snsClient = SnsClient.builder.httpClientBuilder(httpClientBuilder()).region(Region.EU_WEST_1).build()
   private val topicArn = System.getenv("alarms_topic_arn")
 
   private val stage = System.getenv().getOrDefault("Stage", "DEV")
 
   val runtimePublishSNS: (String, String) => String = (messageBody: String, alarmName: String) => {
-    val msgID = snsClient.publish(new PublishRequest()
-      .withSubject(s"ALARM: $alarmName")
-      .withTargetArn(topicArn)
-      .withMessage(messageBody)).getMessageId
+    val request = PublishRequest.builder()
+      .subject(s"ALARM: $alarmName")
+      .topicArn(topicArn)
+      .message(messageBody)
+      .build()
+    val msgID = snsClient.publish(request).messageId()
     s"$alarmName Alarm message-id: $msgID"
   }
   val adjustmentExecutedAlarmName = s"zuora-creditor $stage: number of Invoices credited > 0"
