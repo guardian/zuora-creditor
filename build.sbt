@@ -33,7 +33,7 @@ addCommandAlias("dist", ";riffRaffArtifact")
 
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-lambda-java-core" % "1.2.0",
-  "software.amazon.awssdk" % "sns" % "2.17.225",
+  "software.amazon.awssdk" % "sns" % "2.17.295",
   "com.gu" %% "simple-configuration-ssm" % "1.5.7",
   "com.typesafe.play" %% "play-json" % "2.9.4",
   "ch.qos.logback" % "logback-classic" % "1.4.5",
