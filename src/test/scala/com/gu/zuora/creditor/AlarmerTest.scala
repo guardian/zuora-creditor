@@ -13,13 +13,13 @@ class AlarmerTest extends FlatSpec with Matchers {
   private val alarmer = Alarmer(publishToSNSMock)
 
   it should "send notification with correct alarm name or not if negInvoicesWithHolidayCreditAutomated > 0 " in {
-    alarmer.notifyIfAdjustmentTriggered(AdjustmentsReport(3, 2)) shouldEqual s"$AdjustmentExecutedAlarmName Alarm message-id: $TestMessageId"
+    alarmer.notifyIfAdjustmentTriggered(AdjustmentsReport(3, 2)) shouldEqual s"$adjustmentExecutedAlarmName Alarm message-id: $TestMessageId"
     alarmer.notifyIfAdjustmentTriggered(AdjustmentsReport(0, 0)) shouldEqual "not-published"
   }
 
   behavior of "notifyAboutReportDownloadFailure"
 
   it should  "send notification with correct alarm name for Report Download Failure" in {
-    alarmer.notifyAboutReportDownloadFailure("message") shouldEqual s"$ReportDownloadFailureAlarmName Alarm message-id: $TestMessageId"
+    alarmer.notifyAboutReportDownloadFailure("message") shouldEqual s"$reportDownloadFailureAlarmName Alarm message-id: $TestMessageId"
   }
 }
