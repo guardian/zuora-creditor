@@ -36,7 +36,7 @@ libraryDependencies ++= Seq(
   "software.amazon.awssdk" % "sns" % "2.17.225",
   "com.gu" %% "simple-configuration-ssm" % "1.5.7",
   "com.typesafe.play" %% "play-json" % "2.9.4",
-  "ch.qos.logback" % "logback-classic" % "1.4.5",
+  "ch.qos.logback" % "logback-classic" % "1.4.7",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   "org.scalaj" %% "scalaj-http" % "2.4.2",
   "io.kontainers" %% "purecsv" % "0.4.1",
