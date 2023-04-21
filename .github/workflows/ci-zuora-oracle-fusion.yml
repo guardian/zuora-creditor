@@ -1,0 +1,54 @@
+# Find full documentation here https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions
+name: build-zuora-oracle-fusion
+
+on:
+  pull_request:
+    paths:
+      - 'zuora-oracle-fusion/**'
+      - 'cdk/*'
+      - 'cdk/bin/**'
+      - 'cdk/lib/**/zuora-oracle-fusion*'
+
+  push:
+    branches:
+      - "main"
+jobs:
+  build-zuora-oracle-fusion:
+    if: >-
+      (github.actor != 'dependabot[bot]') &&
+        (github.event.pull_request.head.repo.owner.login == 'guardian' ||
+          github.event_name == 'push')
+    runs-on: ubuntu-latest
+
+    # See https://docs.github.com/en/actions/security-guides/automatic-token-authentication#permissions-for-the-github_token
+    permissions:
+      # required by aws-actions/configure-aws-credentials
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout repo
+      - uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+
+#      - name: app test + build
+#        working-directory: ./zuora-oracle-fusion
+
+      - name: Build cdk
+        working-directory: ./cdk
+        run: |
+          npm install
+          npm ci
+          npm run lint
+          npm test
+          npm run synth
+
+      # See https://github.com/aws-actions/configure-aws-credentials
+      - name: Setup AWS credentials to enable uploading to S3 for Riff-Raff
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          aws-region: eu-west-1
