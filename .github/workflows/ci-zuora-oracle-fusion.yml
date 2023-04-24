@@ -34,8 +34,16 @@ jobs:
         with:
           node-version-file: '.nvmrc'
 
-#      - name: app test + build
-#        working-directory: ./zuora-oracle-fusion
+      - name: app test + build
+        working-directory: ./zuora-oracle-fusion
+        run: |
+          npm install
+          npm run lint
+          npm test
+          npm prune --omit=dev
+          npm run build
+          cp package.json dist
+          zip -r zuora-oracle-fusion dist/*
 
       - name: Build cdk
         working-directory: ./cdk
@@ -52,3 +60,15 @@ jobs:
         with:
           role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
           aws-region: eu-west-1
+
+      - name: Upload to riff-raff
+        uses: guardian/actions-riff-raff@v2
+        with:
+          app: zuora-oracle-fusion
+          projectName: membership::zuora-oracle-fusion
+          configPath: ./zuora-oracle-fusion/riff-raff.yaml
+          contentDirectories: |
+            cdk.out:
+              - cdk/cdk.out/
+            zuora-canonical-config:
+              - zuora-oracle-fusion.zip
