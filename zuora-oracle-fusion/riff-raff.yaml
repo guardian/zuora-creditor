@@ -1,0 +1,48 @@
+allowedStages:
+  - CSBX
+  - PROD
+deployments:
+  lambda-upload-eu-west-1-membership-zuora-oracle-fusion:
+    type: aws-lambda
+    stacks:
+      - membership
+    regions:
+      - eu-west-1
+    app: zuora-oracle-fusion
+    contentDirectory: zuora-oracle-fusion
+    parameters:
+      bucketSsmLookup: true
+      lookupByTags: true
+      fileName: zuora-oracle-fusion.zip
+    actions:
+      - uploadLambda
+  cfn-eu-west-1-membership-zuora-oracle-fusion:
+    type: cloud-formation
+    regions:
+      - eu-west-1
+    stacks:
+      - membership
+    app: zuora-oracle-fusion
+    contentDirectory: cdk.out
+    parameters:
+      templateStagePaths:
+        CODE: ZuoraOracleFusion-CSBX.template.json
+        PROD: ZuoraOracleFusion-PROD.template.json
+    dependencies:
+      - lambda-upload-eu-west-1-membership-zuora-oracle-fusion
+  lambda-update-eu-west-1-membership-zuora-oracle-fusion:
+    type: aws-lambda
+    stacks:
+      - membership
+    regions:
+      - eu-west-1
+    app: zuora-oracle-fusion
+    contentDirectory: zuora-oracle-fusion
+    parameters:
+      bucketSsmLookup: true
+      lookupByTags: true
+      fileName: zuora-oracle-fusion.zip
+    actions:
+      - updateLambda
+    dependencies:
+      - cfn-eu-west-1-membership-zuora-oracle-fusion
