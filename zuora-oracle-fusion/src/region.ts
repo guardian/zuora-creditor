@@ -3,9 +3,9 @@
 import cloneDeep from "clone-deep";
 
 export type RegionColumns = {
-    regionCode: string,
-    taxAccount: string,
-    legalEntity: string
+    regionCode : string,
+    taxAccount : string,
+    legalEntity : string
 }
 
 // List of regions and their codes
@@ -21,7 +21,7 @@ const NZ         = {regionCode: 'R901', legalEntity: '128', taxAccount: '225016'
 const US         = {regionCode: 'R601', legalEntity: '129', taxAccount: '225015'};
 const ROW        = {regionCode: 'R301', legalEntity: '111', taxAccount: '225021'};
 
-export function lookupRegion(country: string, state: string, accountingCodeType: string): RegionColumns {
+export function lookupRegion(country : string, state : string, accountingCodeType : string) : RegionColumns {
     let region = ROW;
 
     switch (country) {

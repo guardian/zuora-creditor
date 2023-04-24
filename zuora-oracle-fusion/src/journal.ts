@@ -1,5 +1,5 @@
-import {ZuoraV1Api} from "canonical-config/dist/zuora-api.js";
-import {appParams} from "canonical-config/dist/app-parameters.js";
+import { ZuoraV1Api } from "canonical-config/dist/zuora-api.js";
+import { appParams } from "canonical-config/dist/app-parameters.js";
 
 const v1Api = await ZuoraV1Api.fromStage(appParams.stage);
 

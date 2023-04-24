@@ -1,15 +1,15 @@
 
 export type DiscountColumns = {
-    accountCode: string,
-    productCode: string
+    accountCode : string,
+    productCode : string
 }
 
 export function discountFixes(
-    productRatePlanChargeProductCode: string,
-    accountingCodeType: string,
-    accountingCodeAccount: string,
-    accountingCodeProduct: string,
-): DiscountColumns {
+    productRatePlanChargeProductCode : string,
+    accountingCodeType : string,
+    accountingCodeAccount : string,
+    accountingCodeProduct : string,
+) : DiscountColumns {
 
     const AC_DIGITAL_SUBSCRIBERS_REVENUE = '411301';
     const AC_DIGITAL_SUBSCRIBERS_DISCOUNTS = '411302';
@@ -27,7 +27,8 @@ export function discountFixes(
             : accountingCodeAccount;
 
         // And then the P0000 code needs overwrite as well
-        // The overwrite would be linked to Accounting Code: Name, but only where "Accounting Code: Type" is "deferred revenue" or "sales revenue"
+        // The overwrite would be linked to Accounting Code: Name,
+        //  but only where "Accounting Code: Type" is "deferred revenue" or "sales revenue"
         const productCode = accountingCodeType === DEFERRED_REVENUE || accountingCodeType === SALES_REVENUE
             ? accountingCodeProduct
             : productRatePlanChargeProductCode;
