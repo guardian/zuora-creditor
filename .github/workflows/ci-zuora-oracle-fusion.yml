@@ -71,4 +71,4 @@ jobs:
             cdk.out:
               - cdk/cdk.out/
             zuora-canonical-config:
-              - zuora-oracle-fusion.zip
+              - zuora-oracle-fusion/zuora-oracle-fusion.zip
