@@ -3,8 +3,734 @@
 exports[`The ZuoraOracleFusion stack matches the snapshot 1`] = `
 {
   "Metadata": {
-    "gu:cdk:constructs": [],
+    "gu:cdk:constructs": [
+      "GuDistributionBucketParameter",
+      "GuApiLambda",
+      "GuApiGateway5xxPercentageAlarm",
+    ],
     "gu:cdk:version": "TEST",
+  },
+  "Outputs": {
+    "zuoraoraclepostprocesslambdazuoraoraclefusionEndpoint59BD186B": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region",
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix",
+            },
+            "/",
+            {
+              "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusionDeploymentStageprod7FCE7ACA",
+            },
+            "/",
+          ],
+        ],
+      },
+    },
+  },
+  "Parameters": {
+    "DistributionBucketName": {
+      "Default": "/account/services/artifact.bucket",
+      "Description": "SSM parameter containing the S3 bucket name holding distribution artifacts",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "ApiGatewayHigh5xxPercentageAlarmZuoraoraclefusion391252A9": {
+      "Properties": {
+        "ActionsEnabled": true,
+        "AlarmActions": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:aws:sns:",
+                {
+                  "Ref": "AWS::Region",
+                },
+                ":",
+                {
+                  "Ref": "AWS::AccountId",
+                },
+                ":alerts-topic",
+              ],
+            ],
+          },
+        ],
+        "AlarmDescription": "zuora-oracle-fusion exceeded 5% error rate",
+        "AlarmName": "High 5XX error % from zuora-oracle-fusion (ApiGateway) in TEST",
+        "ComparisonOperator": "GreaterThanThreshold",
+        "EvaluationPeriods": 1,
+        "Metrics": [
+          {
+            "Expression": "100*m1/m2",
+            "Id": "expr_1",
+            "Label": "% of 5XX responses served for zuora-oracle-fusion",
+          },
+          {
+            "Id": "m1",
+            "MetricStat": {
+              "Metric": {
+                "Dimensions": [
+                  {
+                    "Name": "ApiName",
+                    "Value": "membership-TEST-zuora-oracle-fusion",
+                  },
+                ],
+                "MetricName": "5XXError",
+                "Namespace": "AWS/ApiGateway",
+              },
+              "Period": 60,
+              "Stat": "Sum",
+            },
+            "ReturnData": false,
+          },
+          {
+            "Id": "m2",
+            "MetricStat": {
+              "Metric": {
+                "Dimensions": [
+                  {
+                    "Name": "ApiName",
+                    "Value": "membership-TEST-zuora-oracle-fusion",
+                  },
+                ],
+                "MetricName": "Count",
+                "Namespace": "AWS/ApiGateway",
+              },
+              "Period": 60,
+              "Stat": "SampleCount",
+            },
+            "ReturnData": false,
+          },
+        ],
+        "Threshold": 5,
+        "TreatMissingData": "notBreaching",
+      },
+      "Type": "AWS::CloudWatch::Alarm",
+    },
+    "zuoraoraclepostprocesslambdaC4024507": {
+      "DependsOn": [
+        "zuoraoraclepostprocesslambdaServiceRoleDefaultPolicyA02397ED",
+        "zuoraoraclepostprocesslambdaServiceRoleB995ECFC",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "DistributionBucketName",
+          },
+          "S3Key": "membership/TEST/zuora-oracle-fusion/zuora-oracle-fusion.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "APP": "zuora-oracle-fusion",
+            "STACK": "membership",
+            "STAGE": "TEST",
+          },
+        },
+        "Handler": "dist/lambda/main.handler",
+        "MemorySize": 512,
+        "Role": {
+          "Fn::GetAtt": [
+            "zuoraoraclepostprocesslambdaServiceRoleB995ECFC",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs18.x",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "zuora-oracle-fusion",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/zuora-finance",
+          },
+          {
+            "Key": "Stack",
+            "Value": "membership",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+        "Timeout": 30,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "zuoraoraclepostprocesslambdaServiceRoleB995ECFC": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "zuora-oracle-fusion",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/zuora-finance",
+          },
+          {
+            "Key": "Stack",
+            "Value": "membership",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "zuoraoraclepostprocesslambdaServiceRoleDefaultPolicyA02397ED": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "DistributionBucketName",
+                      },
+                    ],
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "DistributionBucketName",
+                      },
+                      "/membership/TEST/zuora-oracle-fusion/zuora-oracle-fusion.zip",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "ssm:GetParametersByPath",
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ssm:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":parameter/TEST/membership/zuora-oracle-fusion",
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": [
+                "ssm:GetParameters",
+                "ssm:GetParameter",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:ssm:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":parameter/TEST/membership/zuora-oracle-fusion/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "zuoraoraclepostprocesslambdaServiceRoleDefaultPolicyA02397ED",
+        "Roles": [
+          {
+            "Ref": "zuoraoraclepostprocesslambdaServiceRoleB995ECFC",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28": {
+      "Properties": {
+        "Description": "Webhook called by Zuora on completion of a Journal Run",
+        "Name": "membership-TEST-zuora-oracle-fusion",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "zuora-oracle-fusion",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/zuora-finance",
+          },
+          {
+            "Key": "Stack",
+            "Value": "membership",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::ApiGateway::RestApi",
+    },
+    "zuoraoraclepostprocesslambdazuoraoraclefusionANYApiPermissionTestZuoraOracleFusionzuoraoraclepostprocesslambdazuoraoraclefusionD3A05FE8ANYF48AE181": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "zuoraoraclepostprocesslambdaC4024507",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+              },
+              "/test-invoke-stage/*/",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "zuoraoraclepostprocesslambdazuoraoraclefusionANYApiPermissionZuoraOracleFusionzuoraoraclepostprocesslambdazuoraoraclefusionD3A05FE8ANY9186CD1A": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "zuoraoraclepostprocesslambdaC4024507",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+              },
+              "/",
+              {
+                "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusionDeploymentStageprod7FCE7ACA",
+              },
+              "/*/",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "zuoraoraclepostprocesslambdazuoraoraclefusionANYE5F309F9": {
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region",
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "zuoraoraclepostprocesslambdaC4024507",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Fn::GetAtt": [
+            "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+            "RootResourceId",
+          ],
+        },
+        "RestApiId": {
+          "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "zuoraoraclepostprocesslambdazuoraoraclefusionAccountE1365859": {
+      "DeletionPolicy": "Retain",
+      "DependsOn": [
+        "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+      ],
+      "Properties": {
+        "CloudWatchRoleArn": {
+          "Fn::GetAtt": [
+            "zuoraoraclepostprocesslambdazuoraoraclefusionCloudWatchRoleE6C02F7E",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::ApiGateway::Account",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "zuoraoraclepostprocesslambdazuoraoraclefusionCloudWatchRoleE6C02F7E": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "apigateway.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "zuora-oracle-fusion",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/zuora-finance",
+          },
+          {
+            "Key": "Stack",
+            "Value": "membership",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "zuoraoraclepostprocesslambdazuoraoraclefusionDeploymentC120E706661ff16b98e006dc2fc809c0e89d2e9a": {
+      "DependsOn": [
+        "zuoraoraclepostprocesslambdazuoraoraclefusionproxyANY0FDC2DFB",
+        "zuoraoraclepostprocesslambdazuoraoraclefusionproxy20EA1D6C",
+        "zuoraoraclepostprocesslambdazuoraoraclefusionANYE5F309F9",
+      ],
+      "Properties": {
+        "Description": "Webhook called by Zuora on completion of a Journal Run",
+        "RestApiId": {
+          "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+        },
+      },
+      "Type": "AWS::ApiGateway::Deployment",
+    },
+    "zuoraoraclepostprocesslambdazuoraoraclefusionDeploymentStageprod7FCE7ACA": {
+      "DependsOn": [
+        "zuoraoraclepostprocesslambdazuoraoraclefusionAccountE1365859",
+      ],
+      "Properties": {
+        "DeploymentId": {
+          "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusionDeploymentC120E706661ff16b98e006dc2fc809c0e89d2e9a",
+        },
+        "RestApiId": {
+          "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+        },
+        "StageName": "prod",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "zuora-oracle-fusion",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/zuora-finance",
+          },
+          {
+            "Key": "Stack",
+            "Value": "membership",
+          },
+          {
+            "Key": "Stage",
+            "Value": "TEST",
+          },
+        ],
+      },
+      "Type": "AWS::ApiGateway::Stage",
+    },
+    "zuoraoraclepostprocesslambdazuoraoraclefusionproxy20EA1D6C": {
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+            "RootResourceId",
+          ],
+        },
+        "PathPart": "{proxy+}",
+        "RestApiId": {
+          "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+    "zuoraoraclepostprocesslambdazuoraoraclefusionproxyANY0FDC2DFB": {
+      "Properties": {
+        "AuthorizationType": "NONE",
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region",
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "zuoraoraclepostprocesslambdaC4024507",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusionproxy20EA1D6C",
+        },
+        "RestApiId": {
+          "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "zuoraoraclepostprocesslambdazuoraoraclefusionproxyANYApiPermissionTestZuoraOracleFusionzuoraoraclepostprocesslambdazuoraoraclefusionD3A05FE8ANYproxy8F95A581": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "zuoraoraclepostprocesslambdaC4024507",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+              },
+              "/test-invoke-stage/*/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "zuoraoraclepostprocesslambdazuoraoraclefusionproxyANYApiPermissionZuoraOracleFusionzuoraoraclepostprocesslambdazuoraoraclefusionD3A05FE8ANYproxy20CE2251": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "zuoraoraclepostprocesslambdaC4024507",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusion72968C28",
+              },
+              "/",
+              {
+                "Ref": "zuoraoraclepostprocesslambdazuoraoraclefusionDeploymentStageprod7FCE7ACA",
+              },
+              "/*/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
   },
 }
 `;
